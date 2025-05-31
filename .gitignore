@@ -1,0 +1,8 @@
+bin/
+*.exe
+*.out
+*.log
+*.test
+vendor/
+.env
+
