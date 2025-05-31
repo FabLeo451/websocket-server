@@ -111,9 +111,10 @@ func updateLastAccess(userId string) {
 
 }
 
-var jwtSecret = []byte("your_secret_key")
-
 func verifyJWT(tokenString string) (string, error) {
+
+	var jwtSecret = []byte(conf.JwtSecret)
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("algoritmo di firma non valido: %v", token.Header["alg"])

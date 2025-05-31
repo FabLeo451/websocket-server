@@ -30,6 +30,7 @@ type Config struct {
 	Port           int
 	Verbose        bool
 	HostMountPoint string
+	JwtSecret      string
 }
 
 var conf Config
@@ -63,6 +64,7 @@ func Init() {
 	conf.Port = viper.GetInt("PORT")
 	conf.Verbose = viper.GetBool("VERBOSE")
 	conf.HostMountPoint = viper.GetString("HOST_MOUNT_POINT")
+	conf.JwtSecret = viper.GetString("JWT_SECRET")
 
 	if err := viper.Unmarshal(&conf); err != nil {
 		log.Fatalf("errore unmarshalling config: %v", err)
