@@ -45,8 +45,8 @@ func Init() {
 	// Configura Viper per leggere da ENV
 	viper.AutomaticEnv()
 
-	conf.Package.Name = "api"
-	conf.Package.Version = "1.0.0-alpha1"
+	conf.Package.Name = "Websocket server"
+	conf.Package.Version = "1.0.0"
 
 	conf.DB.Host = viper.GetString("DB_HOST")
 	conf.DB.Port = viper.GetInt("DB_PORT")
