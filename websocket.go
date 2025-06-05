@@ -22,8 +22,9 @@ var ctx = context.Background()
 var activeConnections int32
 
 type Message struct {
-	Type string
-	Text string
+	AppId string
+	Type  string
+	Text  string
 }
 
 // Struttura per il WebSocket
