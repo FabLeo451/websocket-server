@@ -15,13 +15,6 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
-type User struct {
-	Id       string `json:"id" bson:"Id"`
-	Name     string `json:"name" bson:"Name"`
-	Password string `json:"password" bson:"Password"`
-	Email    string `json:"email" bson:"Email"`
-}
-
 type CustomClaims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
@@ -49,42 +42,43 @@ func getMetrics(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(metrics)
 }
 
+/*
 func getSystemMetrics(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-	w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Content-Type", "application/json")
 
-	var metrics Host
+		var metrics Host
 
-	// Get disk usage
+		// Get disk usage
 
-	diskUsage, err := disk.Usage(conf.HostMountPoint)
+		diskUsage, err := disk.Usage(conf.HostMountPoint)
 
-	if err != nil {
-		LogWrite("%s\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		if err != nil {
+			LogWrite("%s\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		metrics.Disk = diskUsage
+
+		// Get memory usage
+
+		v, err := mem.VirtualMemory()
+		if err != nil {
+			panic(err)
+		}
+
+		metrics.Mem = v
+
+		response, _ := json.Marshal(metrics)
+
+		w.WriteHeader(http.StatusOK)
+		w.Write(response)
 	}
-
-	metrics.Disk = diskUsage
-
-	// Get memory usage
-
-	v, err := mem.VirtualMemory()
-	if err != nil {
-		panic(err)
-	}
-
-	metrics.Mem = v
-
-	response, _ := json.Marshal(metrics)
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(response)
-}
-
+*/
 func getRoot(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("%s: %s %s %s\n", r.RemoteAddr, r.UserAgent(), r.Method, r.URL)
 	//io.WriteString(w, "This is my website!\n")
@@ -176,6 +170,29 @@ func login(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Error generating token", http.StatusInternalServerError)
 				return
 			}
+
+			user := User{
+				Id:    id,
+				Name:  name,
+				Email: user.Email,
+			}
+
+			agent := r.Header.Get("User-Agent")
+			platform := "Device" // oppure potresti dedurlo
+			ip := r.RemoteAddr
+			status := "idle"
+			updated := time.Now().Format(time.RFC3339)
+
+			session := Session{
+				User:     user,
+				Agent:    agent,
+				Platform: platform,
+				Ip:       ip,
+				Status:   status,
+				Updated:  updated,
+			}
+
+			createSession(session)
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)

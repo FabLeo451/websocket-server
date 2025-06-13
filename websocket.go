@@ -7,17 +7,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/redis/go-redis/v9"
-
 	"log"
-
-	"context"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
 )
-
-var ctx = context.Background()
 
 var activeConnections int32
 
@@ -33,61 +27,6 @@ var upgrader = websocket.Upgrader{
 		// Permetti connessioni da qualsiasi origine
 		return true
 	},
-}
-
-func setSessionActive(key string, active bool) map[string]interface{} {
-
-	rdb := RedisGetConnection()
-
-	// Get session
-
-	val, err := rdb.Get(ctx, key).Result()
-	if err == redis.Nil {
-		fmt.Println("Chiave non trovata")
-		return nil
-	} else if err != nil {
-		log.Fatalf("Errore nel GET: %v", err)
-		return nil
-	} else {
-		//fmt.Printf("Valore corrente: %s\n", val)
-	}
-
-	// Fase 1: Parsing del JSON
-	var data map[string]interface{}
-	err = json.Unmarshal([]byte(val), &data)
-	if err != nil {
-		panic(err)
-	}
-
-	// Fase 2: Modifica del JSON
-	if active {
-		data["status"] = "online"
-	} else {
-		data["status"] = "idle"
-	}
-
-	now := time.Now().UTC()
-	isoString := now.Format(time.RFC3339)
-	data["updated"] = isoString
-
-	// Fase 3: Conversione di nuovo in stringa
-	modifiedJSON, err := json.Marshal(data)
-	if err != nil {
-		panic(err)
-	}
-
-	// Update session
-
-	//err = rdb.Set(ctx, key, modifiedJSON, 0).Err()
-	err = rdb.SetArgs(ctx, key, modifiedJSON, redis.SetArgs{
-		KeepTTL: true,
-	}).Err()
-
-	if err != nil {
-		log.Fatalf("Errore nella modifica: %v", err)
-	}
-
-	return data
 }
 
 func updateLastAccess(userId string) {
