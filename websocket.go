@@ -71,8 +71,7 @@ func verifyJWT(tokenString string) (string, error) {
 		return "", fmt.Errorf("invalid claims")
 	}
 
-	// ✅ Qui cambiamo da "sub" a "sessionId"
-	sessionID, ok := claims["sessionId"].(string)
+	sessionId, ok := claims["sessionId"].(string)
 	if !ok {
 		return "", fmt.Errorf("claim 'sessionId' not found or not a string")
 	}
@@ -84,7 +83,7 @@ func verifyJWT(tokenString string) (string, error) {
 		}
 	}
 
-	return sessionID, nil
+	return sessionId, nil
 }
 
 func handleConnection(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +97,7 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 
 	//fmt.Println("Token:", token)
 
-	sessionID, err := verifyJWT(token)
+	sessionId, err := verifyJWT(token)
 
 	if err != nil {
 		log.Println("Can't decode token:", err)
@@ -120,7 +119,7 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 		//fmt.Println("Connessioni attive:", atomic.LoadInt32(&activeConnections))
 	}()
 
-	session := setSessionActive(sessionID, true)
+	session := setSessionActive(sessionId, true)
 	user := session["user"].(map[string]interface{})
 	updateLastAccess(user["id"].(string))
 
@@ -167,7 +166,7 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fmt.Println("Session disconnected:", sessionID)
-	setSessionActive(sessionID, false)
+	fmt.Println("Session disconnected:", sessionId)
+	setSessionActive(sessionId, false)
 	updateLastAccess(user["id"].(string))
 }
