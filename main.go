@@ -60,8 +60,7 @@ func Start(args []string) int {
 	router := http.NewServeMux()
 	router.HandleFunc("GET /", getRoot)
 	router.HandleFunc("GET /metrics", getMetrics)
-	//router.HandleFunc("POST /user", createUser)
-	//router.HandleFunc("POST /login", login)
+	router.HandleFunc("POST /login", login)
 	router.HandleFunc("GET /ws", handleConnection)
 
 	addr := fmt.Sprintf(":%d", conf.Port)
