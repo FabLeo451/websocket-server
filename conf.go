@@ -18,6 +18,7 @@ type Config struct {
 		User      string
 		Password  string
 		Name      string
+		Schema    string
 		Heartbeat int
 		PoolSize  int
 	}
@@ -53,6 +54,7 @@ func Init() {
 	conf.DB.User = viper.GetString("DB_USER")
 	conf.DB.Password = viper.GetString("DB_PASSWORD")
 	conf.DB.Name = viper.GetString("DB_NAME")
+	conf.DB.Schema = viper.GetString("DB_SCHEMA")
 	conf.DB.Heartbeat = viper.GetInt("DB_HEARTBEAT")
 	conf.DB.PoolSize = viper.GetInt("DB_POOLSIZE")
 
