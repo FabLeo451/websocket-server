@@ -182,8 +182,8 @@ func login(w http.ResponseWriter, r *http.Request) {
 				Email: credentials.Email,
 			}
 
-			agent := r.Header.Get("User-Agent")
-			platform := "Device" // oppure potresti dedurlo
+			agent := r.Header.Get("x-user-agent")
+			platform := r.Header.Get("x-platform")
 			ip := r.RemoteAddr
 			status := "idle"
 			updated := time.Now().Format(time.RFC3339)
