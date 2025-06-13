@@ -21,9 +21,10 @@ type Credentials struct {
 }
 
 type CustomClaims struct {
-	UserID string `json:"user_id"`
-	Email  string `json:"email"`
-	Name   string `json:"name"`
+	SessionId string `json:"sessionId"`
+	UserId    string `json:"userId"`
+	Email     string `json:"email"`
+	Name      string `json:"name"`
 	jwt.RegisteredClaims
 }
 
@@ -99,16 +100,17 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 	w.Write(response)
 }
 
-func generateJWT(userID, email, name string) (string, error) {
+func generateJWT(sessionId, userId, email, name string) (string, error) {
 	claims := CustomClaims{
-		UserID: userID,
-		Email:  email,
-		Name:   name,
+		SessionId: sessionId,
+		UserId:    userId,
+		Email:     email,
+		Name:      name,
 		RegisteredClaims: jwt.RegisteredClaims{
 			//ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt: jwt.NewNumericDate(time.Now()),
 			Issuer:   "websocket-server",
-			Subject:  userID,
+			Subject:  userId,
 		},
 	}
 
@@ -124,7 +126,7 @@ func generateJWT(userID, email, name string) (string, error) {
 
 /**
  * POST /login
- * -d '{ email: "admin@hal9k.net", password: "admin" }'
+ * -H "x-user-agent: Radar/1.0.0" -H "x-platform: Android" -d '{ email: "admin@hal9k.net", password: "admin" }'
  */
 func login(w http.ResponseWriter, r *http.Request) {
 	var credentials Credentials
@@ -168,14 +170,6 @@ func login(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			token, err := generateJWT(id, credentials.Email, name)
-
-			if err != nil {
-				log.Println(err)
-				http.Error(w, "Error generating token", http.StatusInternalServerError)
-				return
-			}
-
 			user := User{
 				Id:    id,
 				Name:  name,
@@ -197,7 +191,21 @@ func login(w http.ResponseWriter, r *http.Request) {
 				Updated:  updated,
 			}
 
-			createSession(session)
+			sessionId, err := createSession(session)
+
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Error creating session", http.StatusInternalServerError)
+				return
+			}
+
+			token, err := generateJWT(sessionId, id, credentials.Email, name)
+
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Error generating token", http.StatusInternalServerError)
+				return
+			}
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)

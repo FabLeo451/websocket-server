@@ -30,13 +30,13 @@ type Session struct {
 	Updated  string `json:"updated"`
 }
 
-func createSession(session Session) error {
+func createSession(session Session) (string, error) {
 
 	rdb := RedisGetConnection()
 
 	data, err := json.Marshal(session)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	sessionID := uuid.New().String()
@@ -47,7 +47,7 @@ func createSession(session Session) error {
 		log.Fatalf("Error creating session: %v", err)
 	}
 
-	return nil
+	return sessionID, nil
 }
 
 func setSessionActive(key string, active bool) map[string]interface{} {
