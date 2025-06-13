@@ -15,6 +15,11 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
+type Credentials struct {
+	Email    string `json:"email" bson:"Email"`
+	Password string `json:"password" bson:"Password"`
+}
+
 type CustomClaims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
@@ -122,12 +127,12 @@ func generateJWT(userID, email, name string) (string, error) {
  * -d '{ email: "admin@hal9k.net", password: "admin" }'
  */
 func login(w http.ResponseWriter, r *http.Request) {
-	var user User
+	var credentials Credentials
 
 	//reqDump, _ := httputil.DumpRequest(r, true)
 	//fmt.Printf("REQUEST:\n%s\n", string(reqDump))
 
-	err := json.NewDecoder(r.Body).Decode(&user)
+	err := json.NewDecoder(r.Body).Decode(&credentials)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -142,7 +147,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 		query := "SELECT ID, NAME, (PASSWORD = crypt($1, PASSWORD)) AS password_match FROM " + conf.DB.Schema + ".users WHERE LOWER(EMAIL) = LOWER($2) AND status = 'enabled'"
 
-		rows, err := db.Query(query, user.Password, user.Email)
+		rows, err := db.Query(query, credentials.Password, credentials.Email)
 
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "User not found", http.StatusUnauthorized)
@@ -163,7 +168,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			token, err := generateJWT(id, user.Email, name)
+			token, err := generateJWT(id, credentials.Email, name)
 
 			if err != nil {
 				log.Println(err)
@@ -174,7 +179,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 			user := User{
 				Id:    id,
 				Name:  name,
-				Email: user.Email,
+				Email: credentials.Email,
 			}
 
 			agent := r.Header.Get("User-Agent")

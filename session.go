@@ -15,10 +15,10 @@ import (
 var ctx = context.Background()
 
 type User struct {
-	Id       string `json:"id" bson:"Id"`
-	Name     string `json:"name" bson:"Name"`
-	Password string `json:"password" bson:"Password"`
-	Email    string `json:"email" bson:"Email"`
+	Id   string `json:"id" bson:"Id"`
+	Name string `json:"name" bson:"Name"`
+	//Password string `json:"password" bson:"Password"`
+	Email string `json:"email" bson:"Email"`
 }
 
 type Session struct {
