@@ -129,95 +129,107 @@ func generateJWT(sessionId, userId, email, name string) (string, error) {
  * -H "x-user-agent: Radar/1.0.0" -H "x-platform: Android" -d '{ email: "admin@hal9k.net", password: "admin" }'
  */
 func login(w http.ResponseWriter, r *http.Request) {
+
 	var credentials Credentials
 
 	//reqDump, _ := httputil.DumpRequest(r, true)
-	//fmt.Printf("REQUEST:\n%s\n", string(reqDump))
+	//fmt.Printf("Request:\n%s\n", string(reqDump))
 
-	err := json.NewDecoder(r.Body).Decode(&credentials)
+	id, name := "", ""
+
+	isGuest := r.URL.Query().Has("guest")
+
+	if isGuest {
+		name = "Guest"
+	} else {
+
+		err := json.NewDecoder(r.Body).Decode(&credentials)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		db := DB_GetConnection()
+
+		if db != nil {
+
+			query := "SELECT ID, NAME, (PASSWORD = crypt($1, PASSWORD)) AS password_match FROM " + conf.DB.Schema + ".users WHERE LOWER(EMAIL) = LOWER($2) AND status = 'enabled'"
+
+			rows, err := db.Query(query, credentials.Password, credentials.Email)
+
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "User not found", http.StatusUnauthorized)
+				return
+			} else if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			password_match := false
+
+			for rows.Next() {
+				_ = rows.Scan(&id, &name, &password_match)
+
+				if !password_match {
+					http.Error(w, "Wrong password", http.StatusUnauthorized)
+					return
+				}
+
+			}
+
+			if id == "" {
+				http.Error(w, "User not found", http.StatusUnauthorized)
+				return
+			}
+
+		} else {
+			http.Error(w, "Database unavailable", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// User found and logged or guest
+
+	user := User{
+		Id:    id,
+		Name:  name,
+		Email: credentials.Email,
+	}
+
+	agent := r.Header.Get("x-user-agent")
+	platform := r.Header.Get("x-platform")
+	ip := r.RemoteAddr
+	status := "idle"
+	updated := time.Now().Format(time.RFC3339)
+
+	session := Session{
+		User:     user,
+		Agent:    agent,
+		Platform: platform,
+		Ip:       ip,
+		Status:   status,
+		Updated:  updated,
+	}
+
+	sessionId, err := createSession(session)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Println(err)
+		http.Error(w, "Error creating session", http.StatusInternalServerError)
 		return
 	}
 
-	//db, err := DB_Connect()
-	db := DB_GetConnection()
+	token, err := generateJWT(sessionId, id, credentials.Email, name)
 
-	//if err == nil {
-	if db != nil {
-
-		query := "SELECT ID, NAME, (PASSWORD = crypt($1, PASSWORD)) AS password_match FROM " + conf.DB.Schema + ".users WHERE LOWER(EMAIL) = LOWER($2) AND status = 'enabled'"
-
-		rows, err := db.Query(query, credentials.Password, credentials.Email)
-
-		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "User not found", http.StatusUnauthorized)
-			return
-		} else if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		id, name := "", ""
-		password_match := false
-
-		for rows.Next() {
-			_ = rows.Scan(&id, &name, &password_match)
-
-			if !password_match {
-				http.Error(w, "Wrong password", http.StatusUnauthorized)
-				return
-			}
-
-			user := User{
-				Id:    id,
-				Name:  name,
-				Email: credentials.Email,
-			}
-
-			agent := r.Header.Get("x-user-agent")
-			platform := r.Header.Get("x-platform")
-			ip := r.RemoteAddr
-			status := "idle"
-			updated := time.Now().Format(time.RFC3339)
-
-			session := Session{
-				User:     user,
-				Agent:    agent,
-				Platform: platform,
-				Ip:       ip,
-				Status:   status,
-				Updated:  updated,
-			}
-
-			sessionId, err := createSession(session)
-
-			if err != nil {
-				log.Println(err)
-				http.Error(w, "Error creating session", http.StatusInternalServerError)
-				return
-			}
-
-			token, err := generateJWT(sessionId, id, credentials.Email, name)
-
-			if err != nil {
-				log.Println(err)
-				http.Error(w, "Error generating token", http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprintf(`{"token":"%s"}`, token)))
-		}
-
-		if id == "" {
-			http.Error(w, "User not found", http.StatusUnauthorized)
-		}
-
-	} else {
-		http.Error(w, "Database unavailable", http.StatusInternalServerError)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Error generating token", http.StatusInternalServerError)
+		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf(`{"token":"%s"}`, token)))
 
 }
