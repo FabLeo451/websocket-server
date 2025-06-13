@@ -118,30 +118,30 @@ func verifyJWT(tokenString string) (string, error) {
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("algoritmo di firma non valido: %v", token.Header["alg"])
+			return nil, fmt.Errorf("invalid sign algoritm: %v", token.Header["alg"])
 		}
 		return jwtSecret, nil
 	})
 
 	if err != nil || !token.Valid {
-		return "", fmt.Errorf("token non valido: %w", err)
+		return "", fmt.Errorf("invalid token: %w", err)
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return "", fmt.Errorf("claims non validi")
+		return "", fmt.Errorf("invalid claims")
 	}
 
 	// ✅ Qui cambiamo da "sub" a "sessionId"
 	sessionID, ok := claims["sessionId"].(string)
 	if !ok {
-		return "", fmt.Errorf("claim 'sessionId' non trovato o non è una stringa")
+		return "", fmt.Errorf("claim 'sessionId' not found or not a string")
 	}
 
-	// Verifica scadenza se presente
+	// Check expiration
 	if expRaw, ok := claims["exp"].(float64); ok {
 		if time.Now().Unix() > int64(expRaw) {
-			return "", fmt.Errorf("token scaduto")
+			return "", fmt.Errorf("token expired")
 		}
 	}
 
@@ -168,7 +168,7 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("Errore nell'upgrade WebSocket:", err)
+		log.Println("Error upgrading WebSocket:", err)
 		return
 	}
 	defer conn.Close()
