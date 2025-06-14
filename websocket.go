@@ -39,7 +39,7 @@ func updateLastAccess(userId string) {
 
 		//now := time.Now().UTC()
 
-		_, err := db.Exec("update api.users set last_access = now(), updated = now() where id = $1", userId)
+		_, err := db.Exec("update "+conf.DB.Schema+".users set last_access = now(), updated = now() where id = $1", userId)
 
 		if err != nil {
 			LogWrite("%s\n", err.Error())
@@ -90,12 +90,13 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 
 	// Read the temporary token
 	token := r.URL.Query().Get("token")
+
+	//fmt.Println("Token:", token)
+
 	if token == "" {
 		http.Error(w, "Missing token", http.StatusUnauthorized)
 		return
 	}
-
-	//fmt.Println("Token:", token)
 
 	sessionId, err := verifyJWT(token)
 
