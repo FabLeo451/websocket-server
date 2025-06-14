@@ -150,13 +150,17 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 
 		var reply Message
 
-		switch msg.Type {
-		case "ping":
-			now := time.Now().UTC()
-			isoString := now.Format(time.RFC3339)
-			reply = Message{Type: "pong", Text: isoString}
+		switch msg.AppId {
+
 		default:
-			reply = Message{Type: "default", Text: "Hello from websocket server"}
+			if msg.Type == "ping" {
+				now := time.Now().UTC()
+				isoString := now.Format(time.RFC3339)
+				reply = Message{Type: "pong", Text: isoString}
+			} else {
+				log.Printf("Unhandled message from app '%s' of type '%s': %s\n", msg.AppId, msg.Type, msg.Text)
+				//reply = Message{Type: "default", Text: "Hello from websocket server"}
+			}
 		}
 
 		jsonStr, _ := json.Marshal(reply)
