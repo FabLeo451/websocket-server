@@ -16,6 +16,7 @@ import (
 )
 
 type Credentials struct {
+	Name       string `json:"name"`
 	Email      string `json:"email"`
 	Password   string `json:"password"`
 	Agent      string `json:"agent"`
@@ -177,18 +178,18 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	isGuest := r.URL.Query().Has("guest")
 
+	err := json.NewDecoder(r.Body).Decode(&credentials)
+
+	fmt.Println(credentials)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	if isGuest {
-		name = "Guest"
+		name = credentials.Name
 	} else {
-
-		err := json.NewDecoder(r.Body).Decode(&credentials)
-
-		fmt.Println(credentials)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
 
 		db := DB_GetConnection()
 
@@ -229,7 +230,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// User found and logged or guest
+	// User authenticated or guest
 
 	user := User{
 		Id:    id,
@@ -272,5 +273,11 @@ func login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`{"token":"%s"}`, token)))
+
+	if isGuest {
+		log.Printf("Guest %s entered\n", session.User.Name)
+	} else {
+		log.Printf("User %s authenticated\n", session.User.Name)
+	}
 
 }
