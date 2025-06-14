@@ -237,19 +237,20 @@ func login(w http.ResponseWriter, r *http.Request) {
 		Email: credentials.Email,
 	}
 
-	agent := r.Header.Get("x-user-agent")
-	platform := r.Header.Get("x-platform")
 	ip := r.RemoteAddr
 	status := "idle"
 	updated := time.Now().Format(time.RFC3339)
 
 	session := Session{
-		User:     user,
-		Agent:    agent,
-		Platform: platform,
-		Ip:       ip,
-		Status:   status,
-		Updated:  updated,
+		User:       user,
+		Agent:      credentials.Agent,
+		Platform:   credentials.Platform,
+		Model:      credentials.Model,
+		DeviceName: credentials.DeviceName,
+		DeviceType: credentials.DeviceType,
+		Ip:         ip,
+		Status:     status,
+		Updated:    updated,
 	}
 
 	sessionId, err := createSession(session)

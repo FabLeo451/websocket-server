@@ -22,12 +22,15 @@ type User struct {
 }
 
 type Session struct {
-	User     User   `json:"user"`
-	Agent    string `json:"agent"`
-	Platform string `json:"platform"`
-	Ip       string `json:"ip"`
-	Status   string `json:"status"`
-	Updated  string `json:"updated"`
+	User       User   `json:"user"`
+	Agent      string `json:"agent"`
+	Platform   string `json:"platform"`
+	Model      string `json:"model"`
+	DeviceName string `json:"deviceName"`
+	DeviceType string `json:"deviceType"`
+	Ip         string `json:"ip"`
+	Status     string `json:"status"`
+	Updated    string `json:"updated"`
 }
 
 func createSession(session Session) (string, error) {
