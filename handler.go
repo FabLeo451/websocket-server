@@ -130,7 +130,7 @@ func generateJWT(sessionId, userId, email, name string) (string, error) {
 	return tokenString, nil
 }
 
-func loginOptions(w http.ResponseWriter, r *http.Request) {
+func optionsPreflight(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get("Origin")
 	if origin != "" {
 		// Imposta l'origine della richiesta come origine consentita
@@ -159,6 +159,7 @@ func loginOptions(w http.ResponseWriter, r *http.Request) {
 func login(w http.ResponseWriter, r *http.Request) {
 
 	origin := r.Header.Get("Origin")
+
 	if origin != "" {
 		// Imposta l'origine della richiesta come origine consentita
 		w.Header().Set("Access-Control-Allow-Origin", origin)
@@ -180,7 +181,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&credentials)
 
-	fmt.Println(credentials)
+	//fmt.Println(credentials)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -277,7 +278,49 @@ func login(w http.ResponseWriter, r *http.Request) {
 	if isGuest {
 		log.Printf("Guest %s entered\n", session.User.Name)
 	} else {
-		log.Printf("User %s authenticated\n", session.User.Name)
+		log.Printf("User %s successfully authenticated\n", session.User.Name)
+	}
+
+}
+
+/**
+ * POST /logout
+ * -d '{ "token": "12345" }'
+ */
+func logout(w http.ResponseWriter, r *http.Request) {
+
+	origin := r.Header.Get("Origin")
+
+	if origin != "" {
+		// Imposta l'origine della richiesta come origine consentita
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Vary", "Origin") // Importante per caching corretto
+	}
+
+	//w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	type Payload struct {
+		Token string `json:"token"`
+	}
+
+	var payload Payload
+
+	//reqDump, _ := httputil.DumpRequest(r, true)
+	//fmt.Printf("Request:\n%s\n", string(reqDump))
+
+	err := json.NewDecoder(r.Body).Decode(&payload)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	sessionId, err := verifyJWT(payload.Token)
+
+	fmt.Printf("Deleting session: %s\n", sessionId)
+
+	if err == nil {
+		deleteSession(sessionId)
 	}
 
 }

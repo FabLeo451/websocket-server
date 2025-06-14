@@ -53,6 +53,22 @@ func createSession(session Session) (string, error) {
 	return sessionID, nil
 }
 
+func deleteSession(sessionId string) error {
+
+	rdb := RedisGetConnection()
+
+	result, err := rdb.Del(ctx, sessionId).Result()
+	if err != nil {
+		return fmt.Errorf("unable to remove key: %w", err)
+	}
+
+	if result == 0 {
+		log.Printf("Key not found: %s\n", sessionId)
+	}
+
+	return nil
+}
+
 func setSessionActive(key string, active bool) map[string]interface{} {
 
 	rdb := RedisGetConnection()
