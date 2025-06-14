@@ -320,7 +320,9 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Deleting session: %s\n", sessionId)
 
 	if err == nil {
-		deleteSession(sessionId)
+		if sessionId != "" {
+			deleteSession(sessionId)
+		}
 	}
 
 }
