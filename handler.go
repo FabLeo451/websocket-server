@@ -16,8 +16,13 @@ import (
 )
 
 type Credentials struct {
-	Email    string `json:"email" bson:"Email"`
-	Password string `json:"password" bson:"Password"`
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	Agent      string `json:"agent"`
+	Platform   string `json:"platform"`
+	Model      string `json:"model"`
+	DeviceName string `json:"deviceName"`
+	DeviceType string `json:"deviceType"`
 }
 
 type CustomClaims struct {
@@ -124,11 +129,44 @@ func generateJWT(sessionId, userId, email, name string) (string, error) {
 	return tokenString, nil
 }
 
+func loginOptions(w http.ResponseWriter, r *http.Request) {
+	origin := r.Header.Get("Origin")
+	if origin != "" {
+		// Imposta l'origine della richiesta come origine consentita
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Vary", "Origin") // Importante per caching corretto
+	}
+
+	//w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	// Se è una richiesta OPTIONS, rispondi subito
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Qui puoi continuare con il normale flusso della tua applicazione
+	w.Write([]byte("Hello from server"))
+}
+
 /**
  * POST /login
  * -H "x-user-agent: Radar/1.0.0" -H "x-platform: Android" -d '{ email: "admin@hal9k.net", password: "admin" }'
  */
 func login(w http.ResponseWriter, r *http.Request) {
+
+	origin := r.Header.Get("Origin")
+	if origin != "" {
+		// Imposta l'origine della richiesta come origine consentita
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Vary", "Origin") // Importante per caching corretto
+	}
+
+	//w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 	var credentials Credentials
 
@@ -144,6 +182,8 @@ func login(w http.ResponseWriter, r *http.Request) {
 	} else {
 
 		err := json.NewDecoder(r.Body).Decode(&credentials)
+
+		fmt.Println(credentials)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
