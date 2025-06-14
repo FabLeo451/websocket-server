@@ -64,7 +64,7 @@ func Start(args []string) int {
 	router.HandleFunc("POST /login", login)
 	router.HandleFunc("OPTIONS /logout", optionsPreflight)
 	router.HandleFunc("POST /logout", logout)
-	router.HandleFunc("GET /ws", handleConnection)
+	router.HandleFunc("GET /connect", handleConnection)
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 
