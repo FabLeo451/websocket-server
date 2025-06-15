@@ -71,41 +71,108 @@ func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-func createHotspot(hotspot Hotspot) (string, error) {
-
+func createHotspot(hotspot Hotspot) (*Hotspot, error) {
 	log.Printf("User '%s' creating hotspot '%s'\n", hotspot.Owner, hotspot.Name)
 
 	id := uuid.New().String()
+	db := DB_GetConnection()
+
+	if db == nil {
+		return nil, errors.New("database not available")
+	}
+
+	query := `
+		INSERT INTO hn.HOT_SPOTS (
+			id, name, owner, enabled, position, start_time, end_time
+		) VALUES (
+			$1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8
+		)
+		RETURNING created, updated
+	`
+
+	now := time.Now().UTC()
+	isoString := now.Format(time.RFC3339)
+
+	hotspot.StartTime = isoString
+	hotspot.EndTime = isoString
+
+	var created, updated time.Time
+
+	err := db.QueryRow(query,
+		id, hotspot.Name, hotspot.Owner, true,
+		hotspot.Position.Latitude, hotspot.Position.Longitude,
+		hotspot.StartTime, hotspot.EndTime,
+	).Scan(&created, &updated)
+
+	hotspot.Created = created.Format(time.RFC3339)
+	hotspot.Updated = updated.Format(time.RFC3339)
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return &hotspot, nil
+}
+
+/**
+ * get /hotspots
+ */
+func getHotspots(w http.ResponseWriter, r *http.Request) {
+
+	addCorsHeaders(w, r)
+
+	claims, err := checkAuthorization(r)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	if claims["userId"].(string) == "" {
+		http.Error(w, "Missing user id in token", http.StatusUnauthorized)
+		return
+	}
+
+	userId := claims["userId"].(string)
+
+	var hotspots []Hotspot
 
 	db := DB_GetConnection()
 
 	if db != nil {
-		//fmt.Println("Creating")
-		//fmt.Println(hotspot)
 
-		query := `
-			INSERT INTO hn.HOT_SPOTS (
-				id, name, owner, enabled, position, start_time, end_time
-			) VALUES (
-				$1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8
-			)`
-
-		now := time.Now().UTC()
-		isoString := now.Format(time.RFC3339)
-
-		_, err := db.Query(query,
-			id, hotspot.Name, hotspot.Owner, true, hotspot.Position.Latitude, hotspot.Position.Longitude, isoString, isoString,
-		)
+		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, start_time, end_time, created, updated
+			FROM hn.HOT_SPOTS WHERE OWNER = $1 ORDER BY CREATED`, userId)
 
 		if err != nil {
-			return "", err
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var h Hotspot
+			err := rows.Scan(
+				&h.Id, &h.Name, &h.Owner, &h.Enabled,
+				&h.Position.Latitude, &h.Position.Longitude,
+				&h.StartTime, &h.EndTime, &h.Created, &h.Updated,
+			)
+			if err != nil {
+				http.Error(w, "error reading rows: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			hotspots = append(hotspots, h)
 		}
 
 	} else {
-		return "", errors.New("database not available")
+		http.Error(w, "database not available", http.StatusInternalServerError)
+		return
 	}
 
-	return id, nil
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(hotspots)
 }
 
 /**
@@ -123,7 +190,7 @@ func postHotspot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if claims["userId"].(string) == "" {
-		http.Error(w, "Missing user id in token", http.StatusBadRequest)
+		http.Error(w, "Missing user id in token", http.StatusUnauthorized)
 		return
 	}
 
@@ -132,6 +199,7 @@ func postHotspot(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&hotspot)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -140,14 +208,15 @@ func postHotspot(w http.ResponseWriter, r *http.Request) {
 
 	hotspot.Owner = claims["userId"].(string)
 
-	_, err = createHotspot(hotspot)
+	newHotspot, err := createHotspot(hotspot)
 
 	if err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	//w.Write([]byte(fmt.Sprintf(`{"token":"%s"}`, token)))
+	json.NewEncoder(w).Encode(newHotspot)
 }

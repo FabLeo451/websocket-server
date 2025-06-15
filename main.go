@@ -68,6 +68,8 @@ func Start(args []string) int {
 
 	router.HandleFunc("OPTIONS /hotspot", optionsPreflight)
 	router.HandleFunc("POST /hotspot", postHotspot)
+	router.HandleFunc("OPTIONS /hotspots", optionsPreflight)
+	router.HandleFunc("GET /hotspots", getHotspots)
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 
