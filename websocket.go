@@ -9,7 +9,6 @@ import (
 
 	"log"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
 )
 
@@ -18,6 +17,7 @@ var activeConnections int32
 type Message struct {
 	AppId string
 	Type  string
+	Token string
 	Text  string
 }
 
@@ -49,41 +49,6 @@ func updateLastAccess(userId string) {
 		LogWrite("Database unavailable\n")
 	}
 
-}
-
-func verifyJWT(tokenString string) (string, error) {
-
-	var jwtSecret = []byte(conf.JwtSecret)
-
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("invalid sign algoritm: %v", token.Header["alg"])
-		}
-		return jwtSecret, nil
-	})
-
-	if err != nil || !token.Valid {
-		return "", fmt.Errorf("invalid token: %w", err)
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return "", fmt.Errorf("invalid claims")
-	}
-
-	sessionId, ok := claims["sessionId"].(string)
-	if !ok {
-		return "", fmt.Errorf("claim 'sessionId' not found or not a string")
-	}
-
-	// Check expiration
-	if expRaw, ok := claims["exp"].(float64); ok {
-		if time.Now().Unix() > int64(expRaw) {
-			return "", fmt.Errorf("token expired")
-		}
-	}
-
-	return sessionId, nil
 }
 
 func handleConnection(w http.ResponseWriter, r *http.Request) {
@@ -151,27 +116,29 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 		var reply Message
 
 		switch msg.AppId {
-
+		case "here-now":
+			hnHandler(msg)
 		default:
 			if msg.Type == "ping" {
 				now := time.Now().UTC()
 				isoString := now.Format(time.RFC3339)
 				reply = Message{Type: "pong", Text: isoString}
+
+				jsonStr, _ := json.Marshal(reply)
+
+				if err := conn.WriteMessage(websocket.TextMessage, []byte(jsonStr)); err != nil {
+					log.Println("Error writing message:", err)
+					break
+				}
 			} else {
 				log.Printf("Unhandled message from app '%s' of type '%s': %s\n", msg.AppId, msg.Type, msg.Text)
 				//reply = Message{Type: "default", Text: "Hello from websocket server"}
 			}
 		}
 
-		jsonStr, _ := json.Marshal(reply)
-
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(jsonStr)); err != nil {
-			log.Println("Error writing message:", err)
-			break
-		}
 	}
 
-	fmt.Println("Session disconnected:", sessionId)
+	fmt.Println("Websocket disconnected:", sessionId)
 	setSessionActive(sessionId, false)
 	updateLastAccess(user["id"].(string))
 }

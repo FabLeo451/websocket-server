@@ -130,6 +130,64 @@ func generateJWT(sessionId, userId, email, name string) (string, error) {
 	return tokenString, nil
 }
 
+func decodeJWT(tokenString string) (jwt.MapClaims, error) {
+
+	var jwtSecret = []byte(conf.JwtSecret)
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("invalid sign algoritm: %v", token.Header["alg"])
+		}
+		return jwtSecret, nil
+	})
+
+	if err != nil || !token.Valid {
+		return nil, fmt.Errorf("invalid token: %w", err)
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid claims")
+	}
+
+	return claims, nil
+}
+
+func verifyJWT(tokenString string) (string, error) {
+
+	var jwtSecret = []byte(conf.JwtSecret)
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("invalid sign algoritm: %v", token.Header["alg"])
+		}
+		return jwtSecret, nil
+	})
+
+	if err != nil || !token.Valid {
+		return "", fmt.Errorf("invalid token: %w", err)
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", fmt.Errorf("invalid claims")
+	}
+
+	sessionId, ok := claims["sessionId"].(string)
+	if !ok {
+		return "", fmt.Errorf("claim 'sessionId' not found or not a string")
+	}
+
+	// Check expiration
+	if expRaw, ok := claims["exp"].(float64); ok {
+		if time.Now().Unix() > int64(expRaw) {
+			return "", fmt.Errorf("token expired")
+		}
+	}
+
+	return sessionId, nil
+}
+
 func optionsPreflight(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get("Origin")
 	if origin != "" {
