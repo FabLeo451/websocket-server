@@ -32,6 +32,11 @@ type Host struct {
 
 func getMetrics(w http.ResponseWriter, r *http.Request) {
 
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -83,6 +88,12 @@ func getSystemMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 */
 func getRoot(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	fmt.Printf("%s: %s %s %s\n", r.RemoteAddr, r.UserAgent(), r.Method, r.URL)
 	//io.WriteString(w, "This is my website!\n")
 
@@ -98,6 +109,10 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 func optionsPreflight(w http.ResponseWriter, r *http.Request) {
+
+	//reqDump, _ := httputil.DumpRequest(r, true)
+	//fmt.Printf("Request:\n%s\n", string(reqDump))
+
 	origin := r.Header.Get("Origin")
 	if origin != "" {
 		// Imposta l'origine della richiesta come origine consentita
@@ -115,8 +130,7 @@ func optionsPreflight(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Qui puoi continuare con il normale flusso della tua applicazione
-	w.Write([]byte("Hello from server"))
+	w.WriteHeader(http.StatusNoContent)
 }
 
 /**
@@ -125,17 +139,13 @@ func optionsPreflight(w http.ResponseWriter, r *http.Request) {
  */
 func login(w http.ResponseWriter, r *http.Request) {
 
-	origin := r.Header.Get("Origin")
-
-	if origin != "" {
-		// Imposta l'origine della richiesta come origine consentita
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Vary", "Origin") // Importante per caching corretto
+	if r.Method == http.MethodOptions {
+		fmt.Println("OPTIONS /login")
+		optionsPreflight(w, r)
+		return
 	}
 
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	addCorsHeaders(w, r)
 
 	//reqDump, _ := httputil.DumpRequest(r, true)
 	//fmt.Printf("Request:\n%s\n", string(reqDump))
@@ -255,6 +265,11 @@ func login(w http.ResponseWriter, r *http.Request) {
  * -d '{ "token": "12345" }'
  */
 func logout(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method == http.MethodOptions {
+		optionsPreflight(w, r)
+		return
+	}
 
 	origin := r.Header.Get("Origin")
 

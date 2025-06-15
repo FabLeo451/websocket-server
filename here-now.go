@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -50,6 +51,7 @@ func addCorsHeaders(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
 }
 
 func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
@@ -71,54 +73,45 @@ func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-func createHotspot(hotspot Hotspot) (*Hotspot, error) {
-	log.Printf("User '%s' creating hotspot '%s'\n", hotspot.Owner, hotspot.Name)
+func hotspotHandler(w http.ResponseWriter, r *http.Request) {
+	/*
+		addCorsHeaders(w, r)
 
-	id := uuid.New().String()
-	db := DB_GetConnection()
+		claims, err := checkAuthorization(r)
 
-	if db == nil {
-		return nil, errors.New("database not available")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		if claims["userId"].(string) == "" {
+			http.Error(w, "Missing user id in token", http.StatusUnauthorized)
+			return
+		}
+	*/
+
+	//reqDump, _ := httputil.DumpRequest(r, true)
+	//fmt.Printf("Request:\n%s\n", string(reqDump))
+
+	switch r.Method {
+	case http.MethodOptions:
+		//fmt.Println("OPTIONS /hotspot")
+		optionsPreflight(w, r)
+	case http.MethodPost:
+		postHotspot(w, r)
+	case http.MethodGet:
+		getHotspot(w, r)
+	case http.MethodDelete:
+		deleteHotspot(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
-
-	query := `
-		INSERT INTO hn.HOT_SPOTS (
-			id, name, owner, enabled, position, start_time, end_time
-		) VALUES (
-			$1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8
-		)
-		RETURNING created, updated
-	`
-
-	now := time.Now().UTC()
-	isoString := now.Format(time.RFC3339)
-
-	hotspot.StartTime = isoString
-	hotspot.EndTime = isoString
-
-	var created, updated time.Time
-
-	err := db.QueryRow(query,
-		id, hotspot.Name, hotspot.Owner, true,
-		hotspot.Position.Latitude, hotspot.Position.Longitude,
-		hotspot.StartTime, hotspot.EndTime,
-	).Scan(&created, &updated)
-
-	hotspot.Created = created.Format(time.RFC3339)
-	hotspot.Updated = updated.Format(time.RFC3339)
-
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	return &hotspot, nil
 }
 
 /**
  * get /hotspots
  */
-func getHotspots(w http.ResponseWriter, r *http.Request) {
+func getHotspot(w http.ResponseWriter, r *http.Request) {
 
 	addCorsHeaders(w, r)
 
@@ -175,6 +168,50 @@ func getHotspots(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(hotspots)
 }
 
+func createHotspot(hotspot Hotspot) (*Hotspot, error) {
+	log.Printf("User '%s' creating hotspot '%s'\n", hotspot.Owner, hotspot.Name)
+
+	id := uuid.New().String()
+	db := DB_GetConnection()
+
+	if db == nil {
+		return nil, errors.New("database not available")
+	}
+
+	query := `
+		INSERT INTO hn.HOT_SPOTS (
+			id, name, owner, enabled, position, start_time, end_time
+		) VALUES (
+			$1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8
+		)
+		RETURNING created, updated
+	`
+
+	now := time.Now().UTC()
+	isoString := now.Format(time.RFC3339)
+
+	hotspot.StartTime = isoString
+	hotspot.EndTime = isoString
+
+	var created, updated time.Time
+
+	err := db.QueryRow(query,
+		id, hotspot.Name, hotspot.Owner, true,
+		hotspot.Position.Latitude, hotspot.Position.Longitude,
+		hotspot.StartTime, hotspot.EndTime,
+	).Scan(&created, &updated)
+
+	hotspot.Created = created.Format(time.RFC3339)
+	hotspot.Updated = updated.Format(time.RFC3339)
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return &hotspot, nil
+}
+
 /**
  * POST /hotspot
  */
@@ -219,4 +256,51 @@ func postHotspot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(newHotspot)
+}
+
+/**
+ * DELETE /hotspot/id
+ */
+func deleteHotspot(w http.ResponseWriter, r *http.Request) {
+
+	addCorsHeaders(w, r)
+
+	claims, err := checkAuthorization(r)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	if claims["userId"].(string) == "" {
+		http.Error(w, "Missing user id in token", http.StatusUnauthorized)
+		return
+	}
+
+	userId := claims["userId"].(string)
+
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 3 || parts[2] == "" {
+		http.Error(w, "Missing hotspot Id in URL", http.StatusBadRequest)
+		return
+	}
+	hotspotId := parts[2]
+
+	fmt.Printf("Deleting hotspot %s...\n", hotspotId)
+
+	db := DB_GetConnection()
+	if db == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	query := `DELETE FROM hn.HOT_SPOTS WHERE id = $1 AND owner = $2`
+
+	_, err = db.Exec(query, hotspotId, userId)
+	if err != nil {
+		http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

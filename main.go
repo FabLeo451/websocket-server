@@ -58,18 +58,25 @@ func Start(args []string) int {
 	LogWrite("Starting service on port %d...\n", conf.Port)
 
 	router := http.NewServeMux()
-	router.HandleFunc("GET /", getRoot)
-	router.HandleFunc("GET /metrics", getMetrics)
-	router.HandleFunc("OPTIONS /login", optionsPreflight)
-	router.HandleFunc("POST /login", login)
-	router.HandleFunc("OPTIONS /logout", optionsPreflight)
-	router.HandleFunc("POST /logout", logout)
+	router.HandleFunc("/", getRoot)
+	router.HandleFunc("/metrics", getMetrics)
+
+	//router.HandleFunc("OPTIONS /login", optionsPreflight)
+	router.HandleFunc("/login", login)
+
+	//router.HandleFunc("OPTIONS /logout", optionsPreflight)
+	router.HandleFunc("/logout", logout)
 	router.HandleFunc("GET /connect", handleConnection)
 
-	router.HandleFunc("OPTIONS /hotspot", optionsPreflight)
-	router.HandleFunc("POST /hotspot", postHotspot)
-	router.HandleFunc("OPTIONS /hotspots", optionsPreflight)
-	router.HandleFunc("GET /hotspots", getHotspots)
+	//router.HandleFunc("OPTIONS /hotspots", optionsPreflight)
+	//router.HandleFunc("GET /hotspots", getHotspots)
+	/*
+		router.HandleFunc("OPTIONS /hotspot", optionsPreflight)
+		router.HandleFunc("POST /hotspot", postHotspot)
+		router.HandleFunc("DELETE /hotspot", deleteHotspot)
+	*/
+	router.HandleFunc("/hotspot", hotspotHandler)
+	router.HandleFunc("/hotspot/", hotspotHandler) // For DELETE /hotspot/123
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 
