@@ -66,6 +66,9 @@ func Start(args []string) int {
 	router.HandleFunc("POST /logout", logout)
 	router.HandleFunc("GET /connect", handleConnection)
 
+	router.HandleFunc("OPTIONS /hotspot", optionsPreflight)
+	router.HandleFunc("POST /hotspot", postHotspot)
+
 	addr := fmt.Sprintf(":%d", conf.Port)
 
 	// Usa il middleware per CORS

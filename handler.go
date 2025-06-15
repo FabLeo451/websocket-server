@@ -155,22 +155,10 @@ func decodeJWT(tokenString string) (jwt.MapClaims, error) {
 
 func verifyJWT(tokenString string) (string, error) {
 
-	var jwtSecret = []byte(conf.JwtSecret)
+	claims, err := decodeJWT(tokenString)
 
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("invalid sign algoritm: %v", token.Header["alg"])
-		}
-		return jwtSecret, nil
-	})
-
-	if err != nil || !token.Valid {
-		return "", fmt.Errorf("invalid token: %w", err)
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return "", fmt.Errorf("invalid claims")
+	if err != nil {
+		return "", err
 	}
 
 	sessionId, ok := claims["sessionId"].(string)
@@ -228,14 +216,14 @@ func login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-	var credentials Credentials
-
 	//reqDump, _ := httputil.DumpRequest(r, true)
 	//fmt.Printf("Request:\n%s\n", string(reqDump))
 
 	id, name := "", ""
 
 	isGuest := r.URL.Query().Has("guest")
+
+	var credentials Credentials
 
 	err := json.NewDecoder(r.Body).Decode(&credentials)
 
