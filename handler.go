@@ -250,7 +250,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"token":"%s"}`, token)))
+	w.Write([]byte(fmt.Sprintf(`{"token":"%s", "name":"%s"}`, token, name)))
 
 	if isGuest {
 		log.Printf("Guest %s entered\n", session.User.Name)
