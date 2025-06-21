@@ -137,7 +137,7 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 
 	if db != nil {
 
-		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, start_time, end_time, created, updated
+		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_X(position::geometry) AS latitude, ST_Y(position::geometry) AS longitude, start_time, end_time, created, updated
 			FROM hn.HOT_SPOTS WHERE OWNER = $1 ORDER BY CREATED`, userId)
 
 		if err != nil {
