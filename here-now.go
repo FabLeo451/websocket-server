@@ -99,6 +99,8 @@ func hotspotHandler(w http.ResponseWriter, r *http.Request) {
 		optionsPreflight(w, r)
 	case http.MethodPost:
 		postHotspot(w, r)
+	case http.MethodPut:
+		putHotspot(w, r)
 	case http.MethodGet:
 		getHotspot(w, r)
 	case http.MethodDelete:
@@ -256,6 +258,61 @@ func postHotspot(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(newHotspot)
+}
+
+/**
+ * PUT /hotspot/id
+ */
+func putHotspot(w http.ResponseWriter, r *http.Request) {
+
+	addCorsHeaders(w, r)
+
+	claims, err := checkAuthorization(r)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	if claims["userId"].(string) == "" {
+		http.Error(w, "Missing user id in token", http.StatusUnauthorized)
+		return
+	}
+
+	//userId := claims["userId"].(string)
+
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 3 || parts[2] == "" {
+		http.Error(w, "Missing hotspot Id in URL", http.StatusBadRequest)
+		return
+	}
+	hotspotId := parts[2]
+
+	var hotspot Hotspot
+
+	err = json.NewDecoder(r.Body).Decode(&hotspot)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Updating hotspot %s...\n", hotspotId)
+
+	db := DB_GetConnection()
+	if db == nil {
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	query := `update hn.HOT_SPOTS set name=$1, start_time = $2, end_time = $3 WHERE id = $4`
+
+	_, err = db.Exec(query, hotspot.Name, hotspot.StartTime, hotspot.EndTime, hotspotId)
+	if err != nil {
+		http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 /**
