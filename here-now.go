@@ -160,6 +160,8 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 			hotspots = append(hotspots, h)
 		}
 
+		//fmt.Println(hotspots)
+
 	} else {
 		http.Error(w, "database not available", http.StatusInternalServerError)
 		return
@@ -306,10 +308,11 @@ func putHotspot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `update hn.HOT_SPOTS set name=$1, start_time = $2, end_time = $3 WHERE id = $4`
+	query := `update hn.HOT_SPOTS set name=$1, position = ST_SetSRID(ST_MakePoint($2, $3), 4326), start_time = $4, end_time = $5 WHERE id = $6`
 
-	_, err = db.Exec(query, hotspot.Name, hotspot.StartTime, hotspot.EndTime, hotspotId)
+	_, err = db.Exec(query, hotspot.Name, hotspot.Position.Latitude, hotspot.Position.Longitude, hotspot.StartTime, hotspot.EndTime, hotspotId)
 	if err != nil {
+		log.Println(err.Error())
 		http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
