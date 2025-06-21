@@ -13,19 +13,21 @@ import (
 	"github.com/google/uuid"
 )
 
+type Location struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
 type Hotspot struct {
-	Id       string `json:"id"`
-	Name     string `json:"name"`
-	Owner    string
-	Enabled  bool `json:"enabled"`
-	Position struct {
-		Latitude  float64 `json:"latitude"`
-		Longitude float64 `json:"longitude"`
-	}
-	StartTime string `json:"startTime"`
-	EndTime   string `json:"endTime"`
-	Created   string `json:"created"`
-	Updated   string `json:"updated"`
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	Owner     string
+	Enabled   bool     `json:"enabled"`
+	Position  Location `json:"position"`
+	StartTime string   `json:"startTime"`
+	EndTime   string   `json:"endTime"`
+	Created   string   `json:"created"`
+	Updated   string   `json:"updated"`
 }
 
 func hnMessageHandler(message Message) {
