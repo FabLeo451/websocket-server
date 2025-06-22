@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
 type Location struct {
@@ -19,9 +20,9 @@ type Location struct {
 }
 
 type Hotspot struct {
-	Id        string `json:"id"`
-	Name      string `json:"name"`
-	Owner     string
+	Id        string   `json:"id"`
+	Name      string   `json:"name"`
+	Owner     string   `json:"owner"`
 	Enabled   bool     `json:"enabled"`
 	Position  Location `json:"position"`
 	StartTime string   `json:"startTime"`
@@ -30,7 +31,7 @@ type Hotspot struct {
 	Updated   string   `json:"updated"`
 }
 
-func hnMessageHandler(message Message) {
+func hnMessageHandler(socket *websocket.Conn, message Message) {
 
 	claims, err := decodeJWT(message.Token)
 
@@ -40,6 +41,87 @@ func hnMessageHandler(message Message) {
 	}
 
 	log.Printf("Received message from '%s' of type '%s': %s\n", claims["name"], message.Type, message.Text)
+
+	var reply Message
+
+	switch message.Type {
+	case "position":
+
+		var loc Location
+		err := json.Unmarshal([]byte(message.Text), &loc)
+		if err != nil {
+			log.Println("Error parsing location string:", err)
+			return
+		}
+
+		hotspots := getNearbyHotspot(loc.Latitude, loc.Longitude)
+
+		jsonBytes, err := json.Marshal(hotspots)
+		if err != nil {
+			fmt.Println("Error converting in JSON:", err)
+			return
+		}
+
+		jsonString := string(jsonBytes)
+
+		reply = Message{Type: "reply", Text: jsonString}
+
+		jsonStr, _ := json.Marshal(reply)
+
+		if err := socket.WriteMessage(websocket.TextMessage, []byte(jsonStr)); err != nil {
+			log.Println("Error writing message:", err)
+			break
+		}
+	}
+}
+
+/**
+ * Return nearby hotspots
+ */
+func getNearbyHotspot(latitude float64, longitude float64) []Hotspot {
+
+	var hotspots []Hotspot
+
+	db := DB_GetConnection()
+
+	if db != nil {
+
+		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_X(position::geometry) AS latitude, ST_Y(position::geometry) AS longitude, start_time, end_time, created, updated
+			FROM hn.HOT_SPOTS 
+			WHERE ST_DWithin(
+				position,
+				ST_MakePoint($1, $2)::geography,
+				5000  -- meters
+			)`, latitude, longitude)
+
+		if err != nil {
+			log.Println(err.Error())
+			return nil
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var h Hotspot
+			err := rows.Scan(
+				&h.Id, &h.Name, &h.Owner, &h.Enabled,
+				&h.Position.Latitude, &h.Position.Longitude,
+				&h.StartTime, &h.EndTime, &h.Created, &h.Updated,
+			)
+			if err != nil {
+				log.Println("Error reading rows: " + err.Error())
+				return nil
+			}
+			hotspots = append(hotspots, h)
+		}
+
+		//fmt.Println(hotspots)
+
+	} else {
+		log.Println("Error: database not available")
+		return nil
+	}
+
+	return hotspots
 }
 
 func addCorsHeaders(w http.ResponseWriter, r *http.Request) {
@@ -76,28 +158,9 @@ func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
 }
 
 func hotspotHandler(w http.ResponseWriter, r *http.Request) {
-	/*
-		addCorsHeaders(w, r)
-
-		claims, err := checkAuthorization(r)
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-
-		if claims["userId"].(string) == "" {
-			http.Error(w, "Missing user id in token", http.StatusUnauthorized)
-			return
-		}
-	*/
-
-	//reqDump, _ := httputil.DumpRequest(r, true)
-	//fmt.Printf("Request:\n%s\n", string(reqDump))
 
 	switch r.Method {
 	case http.MethodOptions:
-		//fmt.Println("OPTIONS /hotspot")
 		optionsPreflight(w, r)
 	case http.MethodPost:
 		postHotspot(w, r)
