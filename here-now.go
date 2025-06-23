@@ -32,15 +32,17 @@ type Hotspot struct {
 }
 
 func hnMessageHandler(socket *websocket.Conn, message Message) {
+	/*
+		claims, err := decodeJWT(message.Token)
 
-	claims, err := decodeJWT(message.Token)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	log.Printf("Received message from '%s' of type '%s': %s\n", claims["name"], message.Type, message.Text)
+		log.Printf("Received message from '%s' of type '%s': %s\n", claims["name"], message.Type, message.Text)
+	*/
+	log.Printf("Received message of type '%s': %s\n", message.Type, message.Text)
 
 	var reply Message
 
@@ -86,13 +88,15 @@ func getNearbyHotspot(latitude float64, longitude float64) []Hotspot {
 
 	if db != nil {
 
-		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_X(position::geometry) AS latitude, ST_Y(position::geometry) AS longitude, start_time, end_time, created, updated
+		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_X(position::geometry) AS latitude, ST_Y(position::geometry) AS longitude
 			FROM hn.HOT_SPOTS 
 			WHERE ST_DWithin(
 				position,
 				ST_MakePoint($1, $2)::geography,
 				5000  -- meters
-			)`, latitude, longitude)
+			)
+			AND NOW() BETWEEN start_time AND end_time
+			AND ENABLED = true`, latitude, longitude)
 
 		if err != nil {
 			log.Println(err.Error())
@@ -105,7 +109,6 @@ func getNearbyHotspot(latitude float64, longitude float64) []Hotspot {
 			err := rows.Scan(
 				&h.Id, &h.Name, &h.Owner, &h.Enabled,
 				&h.Position.Latitude, &h.Position.Longitude,
-				&h.StartTime, &h.EndTime, &h.Created, &h.Updated,
 			)
 			if err != nil {
 				log.Println("Error reading rows: " + err.Error())

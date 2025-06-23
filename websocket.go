@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"sync/atomic"
 	"time"
@@ -77,6 +76,18 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
+	session := setSessionActive(sessionId, true)
+
+	if session == nil {
+		log.Printf("Session not found in websocket connection handler: %s\n", sessionId)
+		return
+	}
+
+	user := session["user"].(map[string]interface{})
+	updateLastAccess(user["id"].(string))
+
+	log.Printf("%s connected\n", user["name"])
+
 	// Incrementa contatore connessioni
 	atomic.AddInt32(&activeConnections, 1)
 	defer func() {
@@ -84,10 +95,6 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt32(&activeConnections, -1)
 		//fmt.Println("Connessioni attive:", atomic.LoadInt32(&activeConnections))
 	}()
-
-	session := setSessionActive(sessionId, true)
-	user := session["user"].(map[string]interface{})
-	updateLastAccess(user["id"].(string))
 
 	for {
 
@@ -138,7 +145,8 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	fmt.Println("Websocket disconnected:", sessionId)
+	log.Printf("%s disconnected\n", user["name"])
+
 	setSessionActive(sessionId, false)
 	updateLastAccess(user["id"].(string))
 }
