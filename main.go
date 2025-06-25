@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -55,7 +56,7 @@ func Start(args []string) int {
 
 	RedisConnect()
 
-	LogWrite("Starting service on port %d...\n", conf.Port)
+	log.Printf("Starting service on port %d...\n", conf.Port)
 
 	router := http.NewServeMux()
 	router.HandleFunc("/", getRoot)
@@ -83,7 +84,7 @@ func Start(args []string) int {
 	// Usa il middleware per CORS
 	http.Handle("/", handleCORS(router))
 
-	LogWrite("Service ready\n")
+	log.Printf("Service ready\n")
 
 	err := http.ListenAndServe(addr, router)
 

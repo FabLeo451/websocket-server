@@ -30,7 +30,7 @@ var upgrader = websocket.Upgrader{
 
 func updateLastAccess(userId string) {
 
-	//LogWrite("Updating last access for %s\n", userId)
+	//log.Printf("Updating last access for %s\n", userId)
 
 	db := DB_GetConnection()
 
@@ -41,11 +41,11 @@ func updateLastAccess(userId string) {
 		_, err := db.Exec("update "+conf.DB.Schema+".users set last_access = now(), updated = now() where id = $1", userId)
 
 		if err != nil {
-			LogWrite("%s\n", err.Error())
+			log.Printf("%s\n", err.Error())
 		}
 
 	} else {
-		LogWrite("Database unavailable\n")
+		log.Printf("Database unavailable\n")
 	}
 
 }

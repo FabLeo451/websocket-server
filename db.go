@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -79,7 +80,7 @@ func DB_KeepAlive() {
 		for {
 			select {
 			case <-ticker.C:
-				//LogWrite("Ping...\n")
+				//log.Printf("Ping...\n")
 
 				if !DB_Ping() {
 					fmt.Println("Error: Database unavailable")
@@ -95,7 +96,7 @@ func DB_KeepAlive() {
 
 func DB_ConnectKeepAlive() *sql.DB {
 
-	LogWrite("Connecting to database %s:%d...\n", conf.DB.Host, conf.DB.Port)
+	log.Printf("Connecting to database %s:%d...\n", conf.DB.Host, conf.DB.Port)
 
 	conn, err := DB_Open()
 
@@ -110,7 +111,7 @@ func DB_ConnectKeepAlive() *sql.DB {
 
 		_connection = conn
 
-		LogWrite("Starting keep alive function...\n")
+		log.Printf("Starting keep alive function...\n")
 		DB_KeepAlive()
 
 	} else {
@@ -125,7 +126,7 @@ func RedisConnect() *redis.Client {
 	once.Do(func() {
 		addr := fmt.Sprintf("%s:%d", conf.Redis.Host, conf.Redis.Port)
 
-		LogWrite("Connecting to Redis %s ...\n", addr)
+		log.Printf("Connecting to Redis %s ...\n", addr)
 
 		_redisConn = redis.NewClient(&redis.Options{
 			Addr:     addr,
@@ -136,9 +137,9 @@ func RedisConnect() *redis.Client {
 
 		_, err := _redisConn.Ping(context.Background()).Result()
 		if err != nil {
-			LogWrite("Redis connection failed: %v\n", err)
+			log.Printf("Redis connection failed: %v\n", err)
 		} else {
-			LogWrite("Redis connected\n")
+			log.Printf("Redis connected\n")
 		}
 	})
 
