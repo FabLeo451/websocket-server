@@ -94,7 +94,7 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("%s: %s %s %s\n", r.RemoteAddr, r.UserAgent(), r.Method, r.URL)
+	//fmt.Printf("%s: %s %s %s\n", r.RemoteAddr, r.UserAgent(), r.Method, r.URL)
 	//io.WriteString(w, "This is my website!\n")
 
 	response, _ := json.Marshal(conf.Package)

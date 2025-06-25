@@ -162,6 +162,8 @@ func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
 
 func hotspotHandler(w http.ResponseWriter, r *http.Request) {
 
+	log.Printf("%s: %s %s\n", r.RemoteAddr, r.Method, r.URL.Path)
+
 	switch r.Method {
 	case http.MethodOptions:
 		optionsPreflight(w, r)
@@ -199,13 +201,7 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 	// Check if asking for a specific hotspot
 	parts := strings.Split(r.URL.Path, "/")
 
-	if len(parts) >= 3 || parts[2] != "" {
-
-		hotspotId := parts[2]
-		whereCond = "id = $1"
-		whereVal = hotspotId
-
-	} else {
+	if len(parts) < 3 {
 
 		if claims["userId"].(string) == "" {
 			http.Error(w, "Missing user id in token", http.StatusUnauthorized)
@@ -216,6 +212,12 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 
 		whereCond = "OWNER = $1"
 		whereVal = userId
+
+	} else {
+
+		hotspotId := parts[2]
+		whereCond = "id = $1"
+		whereVal = hotspotId
 
 	}
 
