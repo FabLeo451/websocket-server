@@ -299,7 +299,7 @@ func createHotspot(hotspot Hotspot) (*Hotspot, error) {
 	hotspot.Updated = updated.Format(time.RFC3339)
 
 	if err != nil {
-		log.Println(err)
+		log.Println(err.Error())
 		return nil, err
 	}
 
@@ -335,7 +335,7 @@ func postHotspot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(claims)
+	//fmt.Println(claims)
 
 	hotspot.Owner = claims["userId"].(string)
 
@@ -436,10 +436,11 @@ func deleteHotspot(w http.ResponseWriter, r *http.Request) {
 	}
 	hotspotId := parts[2]
 
-	fmt.Printf("Deleting hotspot %s...\n", hotspotId)
+	log.Printf("Deleting hotspot %s...\n", hotspotId)
 
 	db := DB_GetConnection()
 	if db == nil {
+		log.Println("Database not available")
 		http.Error(w, "Database not available", http.StatusInternalServerError)
 		return
 	}
@@ -448,6 +449,7 @@ func deleteHotspot(w http.ResponseWriter, r *http.Request) {
 
 	_, err = db.Exec(query, hotspotId, userId)
 	if err != nil {
+		log.Println(err.Error())
 		http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
