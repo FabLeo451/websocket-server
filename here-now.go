@@ -162,7 +162,7 @@ func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
 
 func hotspotHandler(w http.ResponseWriter, r *http.Request) {
 
-	log.Printf("%s: %s %s\n", r.RemoteAddr, r.Method, r.URL.Path)
+	log.Printf("%s %s\n", r.Method, r.URL.Path)
 
 	switch r.Method {
 	case http.MethodOptions:
