@@ -179,7 +179,8 @@ func hotspotHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
- * get /hotspots
+ * get /hotspot/[id]
+ * If id is missing, return all hotspots owned by logged user
  */
 func getHotspot(w http.ResponseWriter, r *http.Request) {
 
@@ -192,12 +193,31 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if claims["userId"].(string) == "" {
-		http.Error(w, "Missing user id in token", http.StatusUnauthorized)
-		return
-	}
+	whereCond := ""
+	whereVal := ""
 
-	userId := claims["userId"].(string)
+	// Check if asking for a specific hotspot
+	parts := strings.Split(r.URL.Path, "/")
+
+	if len(parts) >= 3 || parts[2] != "" {
+
+		hotspotId := parts[2]
+		whereCond = "id = $1"
+		whereVal = hotspotId
+
+	} else {
+
+		if claims["userId"].(string) == "" {
+			http.Error(w, "Missing user id in token", http.StatusUnauthorized)
+			return
+		}
+
+		userId := claims["userId"].(string)
+
+		whereCond = "OWNER = $1"
+		whereVal = userId
+
+	}
 
 	var hotspots []Hotspot
 
@@ -206,7 +226,7 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 	if db != nil {
 
 		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_X(position::geometry) AS latitude, ST_Y(position::geometry) AS longitude, start_time, end_time, created, updated
-			FROM hn.HOT_SPOTS WHERE OWNER = $1 ORDER BY CREATED`, userId)
+			FROM hn.HOT_SPOTS WHERE `+whereCond+` ORDER BY CREATED`, whereVal)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
