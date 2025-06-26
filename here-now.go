@@ -339,6 +339,8 @@ func postHotspot(w http.ResponseWriter, r *http.Request) {
 
 	hotspot.Owner = claims["userId"].(string)
 
+	log.Printf("Creating hotspot %v\n", hotspot)
+
 	newHotspot, err := createHotspot(hotspot)
 
 	if err != nil {
@@ -390,7 +392,7 @@ func putHotspot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Updating hotspot %s...\n", hotspotId)
+	log.Printf("Updating hotspot %v\n", hotspot)
 
 	db := DB_GetConnection()
 	if db == nil {
