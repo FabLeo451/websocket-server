@@ -206,6 +206,7 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 	if len(parts) < 3 {
 
 		if claims["userId"].(string) == "" {
+			log.Println("Error: Missing user id in token")
 			http.Error(w, "Missing user id in token", http.StatusUnauthorized)
 			return
 		}
