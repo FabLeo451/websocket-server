@@ -198,6 +198,8 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 	whereCond := ""
 	whereVal := ""
 
+	hotspotId := ""
+
 	// Check if asking for a specific hotspot
 	parts := strings.Split(r.URL.Path, "/")
 
@@ -215,7 +217,7 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 
-		hotspotId := parts[2]
+		hotspotId = parts[2]
 		whereCond = "id = $1"
 		whereVal = hotspotId
 
@@ -254,6 +256,12 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 		http.Error(w, "database not available", http.StatusInternalServerError)
+		return
+	}
+
+	// If searching for a specific hotspot and not found send the correct code
+	if hotspotId != "" && len(hotspots) == 0 {
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
