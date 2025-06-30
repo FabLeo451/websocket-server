@@ -301,7 +301,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionId, err := verifyJWT(payload.Token)
 
-	fmt.Printf("Deleting session: %s\n", sessionId)
+	log.Printf("Deleting session: %s\n", sessionId)
 
 	if err == nil {
 		if sessionId != "" {
