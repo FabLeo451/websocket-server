@@ -9,8 +9,6 @@ import (
 
 	"log"
 
-	"websocket-server/session"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -83,7 +81,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	sess := session.SetSessionActive(RedisGetConnection(), sessionId, true)
+	sess := SetSessionActive(RedisGetConnection(), sessionId, true)
 
 	if sess == nil {
 		log.Printf("Session not found in websocket connection handler: %s\n", sessionId)
@@ -154,6 +152,6 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("%s disconnected\n", user["name"])
 
-	session.SetSessionActive(RedisGetConnection(), sessionId, false)
+	SetSessionActive(RedisGetConnection(), sessionId, false)
 	updateLastAccess(user["id"].(string))
 }

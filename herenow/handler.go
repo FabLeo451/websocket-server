@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-
-	"websocket-server/session"
 )
 
 type Credentials struct {
@@ -164,7 +162,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	// User authenticated or guest
 
-	user := session.User{
+	user := User{
 		Id:    id,
 		Name:  name,
 		Email: credentials.Email,
@@ -174,7 +172,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	status := "idle"
 	updated := time.Now().Format(time.RFC3339)
 
-	sess := session.Session{
+	sess := Session{
 		User:       user,
 		Agent:      credentials.Agent,
 		Platform:   credentials.Platform,
@@ -186,7 +184,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Updated:    updated,
 	}
 
-	sessionId, err := session.CreateSession(RedisGetConnection(), sess)
+	sessionId, err := CreateSession(RedisGetConnection(), sess)
 
 	if err != nil {
 		log.Println(err)
@@ -257,7 +255,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 	if err == nil {
 		if sessionId != "" {
-			session.DeleteSession(RedisGetConnection(), sessionId)
+			DeleteSession(RedisGetConnection(), sessionId)
 		}
 	}
 
