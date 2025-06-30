@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -8,6 +9,10 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"websocket-server/herenow"
+
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 //var version = "1.0.0"
@@ -21,6 +26,52 @@ type Command struct {
 }
 
 var flagVersion = false
+
+func getRoot(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	//fmt.Printf("%s: %s %s %s\n", r.RemoteAddr, r.UserAgent(), r.Method, r.URL)
+	//io.WriteString(w, "This is my website!\n")
+
+	response, _ := json.Marshal(conf.Package)
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(response)
+}
+
+type Host struct {
+	Mem  *mem.VirtualMemoryStat
+	Disk *disk.UsageStat
+}
+
+func getMetrics(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Content-Type", "application/json")
+
+	metrics := map[string]interface{}{
+		"activeConnections": herenow.GetActiveConnectionsCount(),
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(metrics)
+}
 
 // Middleware per CORS
 func handleCORS(next http.Handler) http.Handler {
@@ -48,13 +99,9 @@ func Start(args []string) int {
 
 	fmt.Printf("\n   *** %s %s ***\n\n", conf.Package.Name, conf.Package.Version)
 
-	conn := DB_ConnectKeepAlive()
-
-	if conn == nil {
+	if !herenow.Init() {
 		return 1
 	}
-
-	RedisConnect()
 
 	log.Printf("Starting service on port %d...\n", conf.Port)
 
@@ -62,22 +109,13 @@ func Start(args []string) int {
 	router.HandleFunc("/", getRoot)
 	router.HandleFunc("/metrics", getMetrics)
 
-	//router.HandleFunc("OPTIONS /login", optionsPreflight)
-	router.HandleFunc("/login", login)
+	router.HandleFunc("/login", herenow.Login)
 
-	//router.HandleFunc("OPTIONS /logout", optionsPreflight)
-	router.HandleFunc("/logout", logout)
-	router.HandleFunc("GET /connect", handleConnection)
+	router.HandleFunc("/logout", herenow.Logout)
+	router.HandleFunc("GET /connect", herenow.HandleConnection)
 
-	//router.HandleFunc("OPTIONS /hotspots", optionsPreflight)
-	//router.HandleFunc("GET /hotspots", getHotspots)
-	/*
-		router.HandleFunc("OPTIONS /hotspot", optionsPreflight)
-		router.HandleFunc("POST /hotspot", postHotspot)
-		router.HandleFunc("DELETE /hotspot", deleteHotspot)
-	*/
-	router.HandleFunc("/hotspot", hotspotHandler)
-	router.HandleFunc("/hotspot/", hotspotHandler) // For DELETE /hotspot/123
+	router.HandleFunc("/hotspot", herenow.HotspotHandler)
+	router.HandleFunc("/hotspot/", herenow.HotspotHandler) // For DELETE /hotspot/123
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 

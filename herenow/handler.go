@@ -1,4 +1,4 @@
-package main
+package herenow
 
 import (
 	"database/sql"
@@ -7,11 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"sync/atomic"
+	"os"
 	"time"
-
-	"github.com/shirou/gopsutil/v3/disk"
-	"github.com/shirou/gopsutil/v3/mem"
 
 	"websocket-server/session"
 )
@@ -25,31 +22,6 @@ type Credentials struct {
 	Model      string `json:"model"`
 	DeviceName string `json:"deviceName"`
 	DeviceType string `json:"deviceType"`
-}
-
-type Host struct {
-	Mem  *mem.VirtualMemoryStat
-	Disk *disk.UsageStat
-}
-
-func getMetrics(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-	w.Header().Set("Content-Type", "application/json")
-
-	metrics := map[string]interface{}{
-		"activeConnections": atomic.LoadInt32(&activeConnections),
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(metrics)
 }
 
 /*
@@ -89,26 +61,6 @@ func getSystemMetrics(w http.ResponseWriter, r *http.Request) {
 		w.Write(response)
 	}
 */
-func getRoot(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	//fmt.Printf("%s: %s %s %s\n", r.RemoteAddr, r.UserAgent(), r.Method, r.URL)
-	//io.WriteString(w, "This is my website!\n")
-
-	response, _ := json.Marshal(conf.Package)
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(response)
-}
 
 func optionsPreflight(w http.ResponseWriter, r *http.Request) {
 
@@ -139,7 +91,7 @@ func optionsPreflight(w http.ResponseWriter, r *http.Request) {
  * POST /login
  * -H "x-user-agent: Radar/1.0.0" -H "x-platform: Android" -d '{ email: "admin@hal9k.net", password: "admin" }'
  */
-func login(w http.ResponseWriter, r *http.Request) {
+func Login(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodOptions {
 		fmt.Println("OPTIONS /login")
@@ -175,7 +127,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 		if db != nil {
 
-			query := "SELECT ID, NAME, (PASSWORD = crypt($1, PASSWORD)) AS password_match FROM " + conf.DB.Schema + ".users WHERE LOWER(EMAIL) = LOWER($2) AND status = 'enabled'"
+			query := "SELECT ID, NAME, (PASSWORD = crypt($1, PASSWORD)) AS password_match FROM " + os.Getenv("DB_SCHEMA") + ".users WHERE LOWER(EMAIL) = LOWER($2) AND status = 'enabled'"
 
 			rows, err := db.Query(query, credentials.Password, credentials.Email)
 
@@ -266,7 +218,7 @@ func login(w http.ResponseWriter, r *http.Request) {
  * POST /logout
  * -d '{ "token": "12345" }'
  */
-func logout(w http.ResponseWriter, r *http.Request) {
+func Logout(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodOptions {
 		optionsPreflight(w, r)

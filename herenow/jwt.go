@@ -1,7 +1,8 @@
-package main
+package herenow
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -31,7 +32,7 @@ func generateJWT(sessionId, userId, email, name string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	tokenString, err := token.SignedString([]byte(conf.JwtSecret))
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 	if err != nil {
 		return "", err
 	}
@@ -41,7 +42,7 @@ func generateJWT(sessionId, userId, email, name string) (string, error) {
 
 func decodeJWT(tokenString string) (jwt.MapClaims, error) {
 
-	var jwtSecret = []byte(conf.JwtSecret)
+	var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

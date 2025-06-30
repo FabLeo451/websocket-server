@@ -1,8 +1,9 @@
-package main
+package herenow
 
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -30,6 +31,10 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+func GetActiveConnectionsCount() int32 {
+	return atomic.LoadInt32(&activeConnections)
+}
+
 func updateLastAccess(userId string) {
 
 	//log.Printf("Updating last access for %s\n", userId)
@@ -40,7 +45,7 @@ func updateLastAccess(userId string) {
 
 		//now := time.Now().UTC()
 
-		_, err := db.Exec("update "+conf.DB.Schema+".users set last_access = now(), updated = now() where id = $1", userId)
+		_, err := db.Exec("update "+os.Getenv("DB_SCHEMA")+".users set last_access = now(), updated = now() where id = $1", userId)
 
 		if err != nil {
 			log.Printf("%s\n", err.Error())
@@ -52,7 +57,7 @@ func updateLastAccess(userId string) {
 
 }
 
-func handleConnection(w http.ResponseWriter, r *http.Request) {
+func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	// Read the temporary token
 	token := r.URL.Query().Get("token")

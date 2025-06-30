@@ -1,4 +1,4 @@
-package main
+package herenow
 
 import (
 	"encoding/json"
@@ -29,6 +29,18 @@ type Hotspot struct {
 	EndTime   string   `json:"endTime"`
 	Created   string   `json:"created"`
 	Updated   string   `json:"updated"`
+}
+
+func Init() bool {
+	conn := DB_ConnectKeepAlive()
+
+	if conn == nil {
+		return false
+	}
+
+	RedisConnect()
+
+	return true
 }
 
 func hnMessageHandler(socket *websocket.Conn, message Message) {
@@ -160,7 +172,7 @@ func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-func hotspotHandler(w http.ResponseWriter, r *http.Request) {
+func HotspotHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("%s %s\n", r.Method, r.URL.Path)
 
