@@ -255,6 +255,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println(err)
+		return
 	}
 	//sessionId, err := verifyJWT(payload.Token)
 	claims, err := decodeJWT(payload.Token)
