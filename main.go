@@ -98,35 +98,6 @@ func Start(args []string) int {
 	return 0
 }
 
-/**
- * Check connections
- */
-func Check(args []string) int {
-
-	fmt.Printf("Connecting to database %s:%d... ", conf.DB.Host, conf.DB.Port)
-
-	db, err := DB_Open()
-
-	if err == nil {
-
-		fmt.Println("Success")
-
-		fmt.Printf("Pinging database... ")
-
-		err = db.Ping()
-
-		if err == nil {
-			fmt.Println("Success")
-		} else {
-			fmt.Printf("Error: %s\n", err.Error())
-		}
-	} else {
-		fmt.Printf("Error: %s\n", err.Error())
-	}
-
-	return 0
-}
-
 func main() {
 
 	Init()
@@ -139,7 +110,6 @@ func main() {
 
 	mapCommands := make(map[string]Command)
 	mapCommands["start"] = Command{Start, "", "Start service"}
-	mapCommands["check"] = Command{Check, "", "Check connections"}
 
 	flag.BoolVar(&flagVersion, "v", false, "Show version")
 	flag.IntVar(&conf.Port, "P", 9876, "Set server port")
