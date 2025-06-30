@@ -192,7 +192,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := generateJWT(sessionId, id, credentials.Email, name)
+	var expiresAt *time.Time = nil
+
+	if isGuest {
+		t := time.Now().Add(1 * time.Minute)
+		expiresAt = &t
+	}
+
+	token, err := generateJWT(sessionId, id, credentials.Email, name, expiresAt)
 
 	if err != nil {
 		log.Println(err)
@@ -247,16 +254,24 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&payload)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
-	sessionId, err := verifyJWT(payload.Token)
+	//sessionId, err := verifyJWT(payload.Token)
+	claims, err := decodeJWT(payload.Token)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	sessionId, ok := claims["sessionId"].(string)
+
+	if !ok {
+		log.Println("claim 'sessionId' not found or not a string")
+	}
 
 	log.Printf("Deleting session: %s\n", sessionId)
 
-	if err == nil {
-		if sessionId != "" {
-			DeleteSession(RedisGetConnection(), sessionId)
-		}
+	if sessionId != "" {
+		DeleteSession(RedisGetConnection(), sessionId)
 	}
-
 }

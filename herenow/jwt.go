@@ -16,18 +16,22 @@ type CustomClaims struct {
 	jwt.RegisteredClaims
 }
 
-func generateJWT(sessionId, userId, email, name string) (string, error) {
+func generateJWT(sessionId, userId, email, name string, ttl *time.Time) (string, error) {
+
 	claims := CustomClaims{
 		SessionId: sessionId,
 		UserId:    userId,
 		Email:     email,
 		Name:      name,
 		RegisteredClaims: jwt.RegisteredClaims{
-			//ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt: jwt.NewNumericDate(time.Now()),
 			Issuer:   "websocket-server",
 			Subject:  userId,
 		},
+	}
+
+	if ttl != nil {
+		claims.ExpiresAt = jwt.NewNumericDate(*ttl)
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -51,13 +55,13 @@ func decodeJWT(tokenString string) (jwt.MapClaims, error) {
 		return jwtSecret, nil
 	})
 
-	if err != nil || !token.Valid {
-		return nil, fmt.Errorf("invalid token: %w", err)
-	}
-
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return nil, fmt.Errorf("invalid claims")
+	}
+
+	if err != nil || !token.Valid {
+		return claims, fmt.Errorf("invalid token: %w", err)
 	}
 
 	return claims, nil
