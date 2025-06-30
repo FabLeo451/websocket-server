@@ -195,7 +195,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	var expiresAt *time.Time = nil
 
 	if isGuest {
-		t := time.Now().Add(1 * time.Minute)
+		t := time.Now().Add(24 * time.Hour)
 		expiresAt = &t
 	}
 
