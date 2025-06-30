@@ -47,7 +47,7 @@ func Init() {
 	viper.AutomaticEnv()
 
 	conf.Package.Name = "Websocket server"
-	conf.Package.Version = "1.0.0-alpha2"
+	conf.Package.Version = "1.0.0-alpha3"
 
 	conf.DB.Host = viper.GetString("DB_HOST")
 	conf.DB.Port = viper.GetInt("DB_PORT")
