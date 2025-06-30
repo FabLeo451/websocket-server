@@ -1,4 +1,4 @@
-package main
+package session
 
 import (
 	"context"
@@ -33,9 +33,9 @@ type Session struct {
 	Updated    string `json:"updated"`
 }
 
-func createSession(session Session) (string, error) {
+func CreateSession(rdb *redis.Client, session Session) (string, error) {
 
-	rdb := RedisGetConnection()
+	//rdb := RedisGetConnection()
 
 	data, err := json.Marshal(session)
 	if err != nil {
@@ -53,9 +53,9 @@ func createSession(session Session) (string, error) {
 	return sessionID, nil
 }
 
-func deleteSession(sessionId string) error {
+func DeleteSession(rdb *redis.Client, sessionId string) error {
 
-	rdb := RedisGetConnection()
+	//rdb := RedisGetConnection()
 
 	result, err := rdb.Del(ctx, sessionId).Result()
 	if err != nil {
@@ -69,9 +69,9 @@ func deleteSession(sessionId string) error {
 	return nil
 }
 
-func setSessionActive(key string, active bool) map[string]interface{} {
+func SetSessionActive(rdb *redis.Client, key string, active bool) map[string]interface{} {
 
-	rdb := RedisGetConnection()
+	//rdb := RedisGetConnection()
 
 	// Get session
 

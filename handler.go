@@ -12,6 +12,8 @@ import (
 
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
+
+	"websocket-server/session"
 )
 
 type Credentials struct {
@@ -210,7 +212,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	// User authenticated or guest
 
-	user := User{
+	user := session.User{
 		Id:    id,
 		Name:  name,
 		Email: credentials.Email,
@@ -220,7 +222,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	status := "idle"
 	updated := time.Now().Format(time.RFC3339)
 
-	session := Session{
+	sess := session.Session{
 		User:       user,
 		Agent:      credentials.Agent,
 		Platform:   credentials.Platform,
@@ -232,7 +234,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 		Updated:    updated,
 	}
 
-	sessionId, err := createSession(session)
+	sessionId, err := session.CreateSession(RedisGetConnection(), sess)
 
 	if err != nil {
 		log.Println(err)
@@ -253,9 +255,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf(`{"token":"%s", "name":"%s"}`, token, name)))
 
 	if isGuest {
-		log.Printf("Guest %s entered\n", session.User.Name)
+		log.Printf("Guest %s entered\n", sess.User.Name)
 	} else {
-		log.Printf("User %s successfully authenticated\n", session.User.Name)
+		log.Printf("User %s successfully authenticated\n", sess.User.Name)
 	}
 
 }
@@ -303,7 +305,7 @@ func logout(w http.ResponseWriter, r *http.Request) {
 
 	if err == nil {
 		if sessionId != "" {
-			deleteSession(sessionId)
+			session.DeleteSession(RedisGetConnection(), sessionId)
 		}
 	}
 
