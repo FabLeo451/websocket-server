@@ -301,12 +301,13 @@ func createHotspot(hotspot Hotspot) (*Hotspot, error) {
 		)
 		RETURNING created, updated
 	`
+	/*
+		now := time.Now().UTC()
+		isoString := now.Format(time.RFC3339)
 
-	now := time.Now().UTC()
-	isoString := now.Format(time.RFC3339)
-
-	hotspot.StartTime = isoString
-	hotspot.EndTime = isoString
+		hotspot.StartTime = isoString
+		hotspot.EndTime = isoString
+	*/
 
 	var created, updated time.Time
 
