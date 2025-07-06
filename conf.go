@@ -7,10 +7,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+var buildTime string
+
 type Config struct {
 	Package struct {
-		Name    string
-		Version string
+		Name      string
+		Version   string
+		BuildTime string
 	}
 	DB struct {
 		Host      string
@@ -42,6 +45,8 @@ func Init() {
 	if err := godotenv.Load(); err != nil {
 		log.Println(".env non trovato, continuo lo stesso...")
 	}
+
+	conf.Package.BuildTime = buildTime
 
 	// Configura Viper per leggere da ENV
 	viper.AutomaticEnv()
