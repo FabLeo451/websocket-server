@@ -15,10 +15,11 @@ import (
 var activeConnections int32
 
 type Message struct {
-	AppId string
-	Type  string
-	Token string
-	Text  string
+	AppId   string
+	Type    string
+	Subtype string
+	Token   string
+	Text    string
 }
 
 // Struttura per il WebSocket

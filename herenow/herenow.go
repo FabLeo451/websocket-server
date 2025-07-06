@@ -3,7 +3,6 @@ package herenow
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -17,6 +16,11 @@ import (
 type Location struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
+}
+
+type Boundaries struct {
+	NorthEast Location `json:"northEast"`
+	SouthWest Location `json:"southWest"`
 }
 
 type Hotspot struct {
@@ -54,31 +58,60 @@ func hnMessageHandler(socket *websocket.Conn, message Message) {
 
 		log.Printf("Received message from '%s' of type '%s': %s\n", claims["name"], message.Type, message.Text)
 	*/
-	log.Printf("Received message of type '%s': %s\n", message.Type, message.Text)
+	log.Printf("Received message of type '%s/%s': %s\n", message.Type, message.Subtype, message.Text)
 
 	var reply Message
 
 	switch message.Type {
-	case "position":
+	case "hotspots":
 
-		var loc Location
-		err := json.Unmarshal([]byte(message.Text), &loc)
-		if err != nil {
-			log.Println("Error parsing location string:", err)
+		var hotspots []Hotspot
+
+		switch message.Subtype {
+		case "byPosition":
+
+			var loc Location
+
+			err := json.Unmarshal([]byte(message.Text), &loc)
+
+			if err != nil {
+				log.Println("Error parsing location string:", err)
+				return
+			}
+
+			hotspots = getNearbyHotspot(loc.Latitude, loc.Longitude)
+
+		case "byBoundaries":
+
+			var boundaries Boundaries
+
+			err := json.Unmarshal([]byte(message.Text), &boundaries)
+
+			//fmt.Println(boundaries)
+
+			if err != nil {
+				log.Println("Error parsing boundaries string:", err)
+				return
+			}
+
+			hotspots = getHotspotsInBoundaries(boundaries)
+
+		default:
+			log.Printf("Unespected subtype: %s\n", message.Subtype)
 			return
 		}
 
-		hotspots := getNearbyHotspot(loc.Latitude, loc.Longitude)
+		//fmt.Printf("Hotspots found: %d\n", len(hotspots))
 
 		jsonBytes, err := json.Marshal(hotspots)
 		if err != nil {
-			fmt.Println("Error converting in JSON:", err)
+			log.Println("Error converting in JSON:", err)
 			return
 		}
 
 		jsonString := string(jsonBytes)
 
-		reply = Message{Type: "reply", Text: jsonString}
+		reply = Message{Type: message.Type, Text: jsonString}
 
 		jsonStr, _ := json.Marshal(reply)
 
@@ -100,7 +133,7 @@ func getNearbyHotspot(latitude float64, longitude float64) []Hotspot {
 
 	if db != nil {
 
-		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_X(position::geometry) AS latitude, ST_Y(position::geometry) AS longitude
+		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude
 			FROM hn.HOT_SPOTS 
 			WHERE ST_DWithin(
 				position,
@@ -134,6 +167,65 @@ func getNearbyHotspot(latitude float64, longitude float64) []Hotspot {
 	} else {
 		log.Println("Error: database not available")
 		return nil
+	}
+
+	return hotspots
+}
+
+/**
+ * Return hotspots in the given boundaries
+ */
+func getHotspotsInBoundaries(boundaries Boundaries) []Hotspot {
+	var hotspots []Hotspot
+
+	db := DB_GetConnection()
+
+	if db == nil {
+		log.Println("Error: database not available")
+		return nil
+	}
+
+	query := `
+		SELECT id, name, owner, enabled, 
+		       ST_Y(position::geometry) AS latitude, 
+		       ST_X(position::geometry) AS longitude
+		FROM hn.HOT_SPOTS 
+		WHERE ST_Contains(
+			ST_MakeEnvelope(
+				$1, $2,  -- SW.lon, SW.lat
+				$3, $4,  -- NE.lon, NE.lat
+				4326     -- SRID
+			),
+			position::geometry
+		)
+		AND NOW() BETWEEN start_time AND end_time
+		AND enabled = true;
+	`
+
+	rows, err := db.Query(query,
+		boundaries.SouthWest.Longitude,
+		boundaries.SouthWest.Latitude,
+		boundaries.NorthEast.Longitude,
+		boundaries.NorthEast.Latitude,
+	)
+
+	if err != nil {
+		log.Println("Query error:", err.Error())
+		return nil
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var h Hotspot
+		err := rows.Scan(
+			&h.Id, &h.Name, &h.Owner, &h.Enabled,
+			&h.Position.Latitude, &h.Position.Longitude,
+		)
+		if err != nil {
+			log.Println("Error reading rows:", err.Error())
+			return nil
+		}
+		hotspots = append(hotspots, h)
 	}
 
 	return hotspots
@@ -242,7 +334,7 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 
 	if db != nil {
 
-		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_X(position::geometry) AS latitude, ST_Y(position::geometry) AS longitude, start_time, end_time, created, updated
+		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, start_time, end_time, created, updated
 			FROM hn.HOT_SPOTS WHERE `+whereCond+` ORDER BY CREATED`, whereVal)
 
 		if err != nil {
@@ -294,13 +386,13 @@ func createHotspot(hotspot Hotspot) (*Hotspot, error) {
 	}
 
 	query := `
-		INSERT INTO hn.HOT_SPOTS (
-			id, name, owner, enabled, position, start_time, end_time
-		) VALUES (
-			$1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8
-		)
-		RETURNING created, updated
-	`
+	INSERT INTO hn.HOT_SPOTS (
+		id, name, owner, enabled, position, start_time, end_time
+	) VALUES (
+		$1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8
+	)
+	RETURNING created, updated
+`
 	/*
 		now := time.Now().UTC()
 		isoString := now.Format(time.RFC3339)
@@ -313,7 +405,7 @@ func createHotspot(hotspot Hotspot) (*Hotspot, error) {
 
 	err := db.QueryRow(query,
 		id, hotspot.Name, hotspot.Owner, true,
-		hotspot.Position.Latitude, hotspot.Position.Longitude,
+		hotspot.Position.Longitude, hotspot.Position.Latitude,
 		hotspot.StartTime, hotspot.EndTime,
 	).Scan(&created, &updated)
 
@@ -424,7 +516,7 @@ func putHotspot(w http.ResponseWriter, r *http.Request) {
 
 	query := `update hn.HOT_SPOTS set name=$1, position = ST_SetSRID(ST_MakePoint($2, $3), 4326), start_time = $4, end_time = $5 WHERE id = $6`
 
-	_, err = db.Exec(query, hotspot.Name, hotspot.Position.Latitude, hotspot.Position.Longitude, hotspot.StartTime, hotspot.EndTime, hotspotId)
+	_, err = db.Exec(query, hotspot.Name, hotspot.Position.Longitude, hotspot.Position.Latitude, hotspot.StartTime, hotspot.EndTime, hotspotId)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
