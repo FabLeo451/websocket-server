@@ -134,7 +134,7 @@ func getNearbyHotspot(latitude float64, longitude float64) []Hotspot {
 	if db != nil {
 
 		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude
-			FROM hn.HOT_SPOTS 
+			FROM hn.HOTSPOTS 
 			WHERE ST_DWithin(
 				position,
 				ST_MakePoint($1, $2)::geography,
@@ -189,7 +189,7 @@ func getHotspotsInBoundaries(boundaries Boundaries) []Hotspot {
 		SELECT id, name, owner, enabled, 
 		       ST_Y(position::geometry) AS latitude, 
 		       ST_X(position::geometry) AS longitude
-		FROM hn.HOT_SPOTS 
+		FROM hn.HOTSPOTS 
 		WHERE ST_Contains(
 			ST_MakeEnvelope(
 				$1, $2,  -- SW.lon, SW.lat
@@ -335,7 +335,7 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 	if db != nil {
 
 		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, start_time, end_time, created, updated
-			FROM hn.HOT_SPOTS WHERE `+whereCond+` ORDER BY CREATED`, whereVal)
+			FROM hn.HOTSPOTS WHERE `+whereCond+` ORDER BY CREATED`, whereVal)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -386,7 +386,7 @@ func createHotspot(hotspot Hotspot) (*Hotspot, error) {
 	}
 
 	query := `
-	INSERT INTO hn.HOT_SPOTS (
+	INSERT INTO hn.HOTSPOTS (
 		id, name, owner, enabled, position, start_time, end_time
 	) VALUES (
 		$1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8
@@ -514,7 +514,7 @@ func putHotspot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `update hn.HOT_SPOTS set name=$1, position = ST_SetSRID(ST_MakePoint($2, $3), 4326), start_time = $4, end_time = $5 WHERE id = $6`
+	query := `update hn.HOTSPOTS set name=$1, position = ST_SetSRID(ST_MakePoint($2, $3), 4326), start_time = $4, end_time = $5 WHERE id = $6`
 
 	_, err = db.Exec(query, hotspot.Name, hotspot.Position.Longitude, hotspot.Position.Latitude, hotspot.StartTime, hotspot.EndTime, hotspotId)
 	if err != nil {
@@ -561,7 +561,7 @@ func deleteHotspot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `DELETE FROM hn.HOT_SPOTS WHERE id = $1 AND owner = $2`
+	query := `DELETE FROM hn.HOTSPOTS WHERE id = $1 AND owner = $2`
 
 	_, err = db.Exec(query, hotspotId, userId)
 	if err != nil {
