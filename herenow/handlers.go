@@ -3,6 +3,7 @@ package herenow
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -11,6 +12,8 @@ import (
 	"github.com/gorilla/websocket"
 
 	"websocket-server/db"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func hnMessageHandler(socket *websocket.Conn, message Message) {
@@ -121,6 +124,7 @@ func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
+/*
 func HotspotHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("%s %s\n", r.Method, r.URL.Path)
@@ -129,22 +133,122 @@ func HotspotHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodOptions:
 		optionsPreflight(w, r)
 	case http.MethodPost:
-		postHotspot(w, r)
+		PostHotspot(w, r)
 	case http.MethodPut:
 		putHotspot(w, r)
 	case http.MethodGet:
-		getHotspot(w, r)
+		GetHotspot(w, r)
 	case http.MethodDelete:
 		deleteHotspot(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
+*/
+/**
+ * get /hotspot/[id]
+ * If id is missing, return all hotspots owned by logged user
+ */
+func GetHotspot(w http.ResponseWriter, r *http.Request) {
+
+	addCorsHeaders(w, r)
+
+	claims, err := checkAuthorization(r)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	whereCond := ""
+	whereVal := ""
+
+	hotspotId := ""
+
+	// Check if asking for a specific hotspot
+	//parts := strings.Split(r.URL.Path, "/")
+	id := chi.URLParam(r, "id")
+
+	//if len(parts) < 3 {
+	if id == "" { // All user's hotspots
+
+		if claims["userId"].(string) == "" {
+			log.Println("Error: Missing user id in token")
+			http.Error(w, "Missing user id in token", http.StatusUnauthorized)
+			return
+		}
+
+		userId := claims["userId"].(string)
+
+		whereCond = "OWNER = $1"
+		whereVal = userId
+
+	} else { // Specific hotspot
+
+		//hotspotId = parts[2]
+		whereCond = "h.id = $1"
+		whereVal = id
+
+	}
+
+	var hotspots []Hotspot
+
+	db := db.DB_GetConnection()
+
+	if db != nil {
+
+		rows, err := db.Query(
+			`SELECT h.id, h.name, u.name as owner, enabled, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, start_time, end_time, h.created, h.updated
+			FROM hn.HOTSPOTS h, ekhoes.users u 
+			WHERE `+whereCond+`
+			AND h.owner = u.id
+			ORDER BY CREATED`, whereVal)
+
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var h Hotspot
+			err := rows.Scan(
+				&h.Id, &h.Name, &h.Owner, &h.Enabled,
+				&h.Position.Latitude, &h.Position.Longitude,
+				&h.StartTime, &h.EndTime, &h.Created, &h.Updated,
+			)
+			if err != nil {
+				fmt.Println(err)
+				http.Error(w, "error reading rows: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			hotspots = append(hotspots, h)
+		}
+
+		//fmt.Println(hotspots)
+
+	} else {
+		fmt.Println("Error: database not available")
+		http.Error(w, "database not available", http.StatusInternalServerError)
+		return
+	}
+
+	// If searching for a specific hotspot and not found send the correct code
+	if hotspotId != "" && len(hotspots) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(hotspots)
+}
 
 /**
  * POST /hotspot
  */
-func postHotspot(w http.ResponseWriter, r *http.Request) {
+func PostHotspot(w http.ResponseWriter, r *http.Request) {
 
 	addCorsHeaders(w, r)
 
@@ -192,7 +296,7 @@ func postHotspot(w http.ResponseWriter, r *http.Request) {
 /**
  * PUT /hotspot/id
  */
-func putHotspot(w http.ResponseWriter, r *http.Request) {
+func PutHotspot(w http.ResponseWriter, r *http.Request) {
 
 	addCorsHeaders(w, r)
 
@@ -248,7 +352,7 @@ func putHotspot(w http.ResponseWriter, r *http.Request) {
 /**
  * DELETE /hotspot/id
  */
-func deleteHotspot(w http.ResponseWriter, r *http.Request) {
+func DeleteHotspot(w http.ResponseWriter, r *http.Request) {
 
 	addCorsHeaders(w, r)
 

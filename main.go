@@ -11,6 +11,9 @@ import (
 	"path"
 	"websocket-server/herenow"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/mem"
 )
@@ -105,25 +108,63 @@ func Start(args []string) int {
 
 	log.Printf("Starting service on port %d...\n", conf.Port)
 
-	router := http.NewServeMux()
-	router.HandleFunc("/", getRoot)
-	router.HandleFunc("/metrics", getMetrics)
+	//router := http.NewServeMux()
+	/*
+		router.HandleFunc("/", getRoot)
+		router.HandleFunc("/metrics", getMetrics)
 
-	router.HandleFunc("/login", herenow.Login)
-	router.HandleFunc("/logout", herenow.Logout)
-	router.HandleFunc("GET /connect", herenow.HandleConnection)
+		router.HandleFunc("/login", herenow.Login)
+		router.HandleFunc("/logout", herenow.Logout)
+		router.HandleFunc("GET /connect", herenow.HandleConnection)
 
-	router.HandleFunc("/hotspot", herenow.HotspotHandler)  // GET /hotspot
-	router.HandleFunc("/hotspot/", herenow.HotspotHandler) // POST/PUT/DELETE /hotspot/123
+		router.HandleFunc("/hotspot", herenow.HotspotHandler)  // GET /hotspot
+		router.HandleFunc("/hotspot/", herenow.HotspotHandler) // POST/PUT/DELETE /hotspot/123
+	*/
+	r := chi.NewRouter()
+
+	r.Use(middleware.Logger)
+
+	// Static routes
+	r.Get("/", getRoot)
+	r.Get("/metrics", getMetrics)
+	r.Post("/login", herenow.Login)
+	r.Post("/logout", herenow.Logout)
+
+	// Alternative: method prefix syntax (chi supports it too)
+	r.Method("GET", "/connect", http.HandlerFunc(herenow.HandleConnection))
+
+	// /hotspot routes
+	r.Route("/hotspot", func(r chi.Router) {
+		// GET /hotspot
+		r.Get("/", herenow.GetHotspot)
+
+		// POST /hotspot
+		r.Post("/", herenow.PostHotspot)
+
+		// Routes with /hotspot/{id}
+		r.Route("/{id}", func(r chi.Router) {
+			// GET /hotspot/{id}
+			r.Get("/", herenow.GetHotspot)
+
+			// PUT /hotspot/{id}
+			r.Put("/", herenow.PutHotspot)
+
+			// DELETE /hotspot/{id}
+			r.Delete("/", herenow.DeleteHotspot)
+
+			// POST /hotspot/{id}/like
+			//r.Post("/like", herenow.HotspotLikeHandler)
+		})
+	})
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 
 	// Use middleware for CORS
-	http.Handle("/", handleCORS(router))
+	http.Handle("/", handleCORS(r))
 
 	log.Printf("Service ready\n")
 
-	err := http.ListenAndServe(addr, router)
+	err := http.ListenAndServe(addr, r)
 
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
