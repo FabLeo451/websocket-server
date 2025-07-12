@@ -16,17 +16,11 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+/**
+ * Handler for websocket messages
+ */
 func hnMessageHandler(socket *websocket.Conn, message Message) {
-	/*
-		claims, err := decodeJWT(message.Token)
 
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		log.Printf("Received message from '%s' of type '%s': %s\n", claims["name"], message.Type, message.Text)
-	*/
 	//log.Printf("Received message of type '%s/%s': %s\n", message.Type, message.Subtype, message.Text)
 
 	var reply Message
@@ -165,12 +159,6 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if claims["userId"].(string) == "" {
-		log.Println("Error: Missing user id in token")
-		http.Error(w, "Missing user id in token", http.StatusUnauthorized)
-		return
-	}
-
 	userId := claims["userId"].(string)
 
 	whereCond := ""
@@ -284,11 +272,6 @@ func PostHotspot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if claims["userId"].(string) == "" {
-		http.Error(w, "Missing user id in token", http.StatusUnauthorized)
-		return
-	}
-
 	var hotspot Hotspot
 
 	err = json.NewDecoder(r.Body).Decode(&hotspot)
@@ -325,26 +308,14 @@ func PutHotspot(w http.ResponseWriter, r *http.Request) {
 
 	addCorsHeaders(w, r)
 
-	claims, err := checkAuthorization(r)
+	_, err := checkAuthorization(r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	if claims["userId"].(string) == "" {
-		http.Error(w, "Missing user id in token", http.StatusUnauthorized)
-		return
-	}
-
-	//userId := claims["userId"].(string)
-
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) < 3 || parts[2] == "" {
-		http.Error(w, "Missing hotspot Id in URL", http.StatusBadRequest)
-		return
-	}
-	hotspotId := parts[2]
+	hotspotId := chi.URLParam(r, "id")
 
 	var hotspot Hotspot
 
