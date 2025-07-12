@@ -110,16 +110,15 @@ func Start(args []string) int {
 	router.HandleFunc("/metrics", getMetrics)
 
 	router.HandleFunc("/login", herenow.Login)
-
 	router.HandleFunc("/logout", herenow.Logout)
 	router.HandleFunc("GET /connect", herenow.HandleConnection)
 
-	router.HandleFunc("/hotspot", herenow.HotspotHandler)
-	router.HandleFunc("/hotspot/", herenow.HotspotHandler) // For DELETE /hotspot/123
+	router.HandleFunc("/hotspot", herenow.HotspotHandler)  // GET /hotspot
+	router.HandleFunc("/hotspot/", herenow.HotspotHandler) // POST/PUT/DELETE /hotspot/123
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 
-	// Usa il middleware per CORS
+	// Use middleware for CORS
 	http.Handle("/", handleCORS(router))
 
 	log.Printf("Service ready\n")

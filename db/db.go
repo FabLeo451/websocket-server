@@ -1,4 +1,4 @@
-package herenow
+package db
 
 import (
 	"context"

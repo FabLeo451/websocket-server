@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"websocket-server/db"
 )
 
 type Credentials struct {
@@ -21,44 +23,6 @@ type Credentials struct {
 	DeviceName string `json:"deviceName"`
 	DeviceType string `json:"deviceType"`
 }
-
-/*
-func getSystemMetrics(w http.ResponseWriter, r *http.Request) {
-
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Content-Type", "application/json")
-
-		var metrics Host
-
-		// Get disk usage
-
-		diskUsage, err := disk.Usage(conf.HostMountPoint)
-
-		if err != nil {
-			LogWrite("%s\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		metrics.Disk = diskUsage
-
-		// Get memory usage
-
-		v, err := mem.VirtualMemory()
-		if err != nil {
-			panic(err)
-		}
-
-		metrics.Mem = v
-
-		response, _ := json.Marshal(metrics)
-
-		w.WriteHeader(http.StatusOK)
-		w.Write(response)
-	}
-*/
 
 func optionsPreflight(w http.ResponseWriter, r *http.Request) {
 
@@ -121,7 +85,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		name = credentials.Name
 	} else {
 
-		db := DB_GetConnection()
+		db := db.DB_GetConnection()
 
 		if db != nil {
 
@@ -184,7 +148,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Updated:    updated,
 	}
 
-	sessionId, err := CreateSession(RedisGetConnection(), sess)
+	sessionId, err := CreateSession(db.RedisGetConnection(), sess)
 
 	if err != nil {
 		log.Println(err)
@@ -273,6 +237,6 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Deleting session: %s\n", sessionId)
 
 	if sessionId != "" {
-		DeleteSession(RedisGetConnection(), sessionId)
+		DeleteSession(db.RedisGetConnection(), sessionId)
 	}
 }
