@@ -74,21 +74,24 @@ func getMetrics(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(metrics)
 }
 
-// Middleware per CORS
-func handleCORS(next http.Handler) http.Handler {
+func DynamicCORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Imposta gli header CORS
-		w.Header().Set("Access-Control-Allow-Origin", "*")                                // Consenti tutte le origini
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS") // Metodi consentiti
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")                    // Intestazioni consentite
+		origin := r.Header.Get("Origin")
 
-		// Se la richiesta è un "preflight" (OPTIONS), rispondi subito
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
+		if origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Vary", "Origin")
+		}
+
+		// Preflight
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
-		// Passa alla gestione della richiesta
 		next.ServeHTTP(w, r)
 	})
 }
@@ -109,6 +112,7 @@ func Start(args []string) int {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
+	r.Use(DynamicCORSMiddleware)
 
 	// Static routes
 	r.Get("/", getRoot)
@@ -145,9 +149,6 @@ func Start(args []string) int {
 	})
 
 	addr := fmt.Sprintf(":%d", conf.Port)
-
-	// Use middleware for CORS
-	http.Handle("/", handleCORS(r))
 
 	log.Printf("Service ready\n")
 
