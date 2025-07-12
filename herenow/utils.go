@@ -3,6 +3,7 @@ package herenow
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -195,7 +196,7 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 	} else {
 
 		hotspotId = parts[2]
-		whereCond = "id = $1"
+		whereCond = "h.id = $1"
 		whereVal = hotspotId
 
 	}
@@ -206,10 +207,15 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 
 	if db != nil {
 
-		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, start_time, end_time, created, updated
-			FROM hn.HOTSPOTS WHERE `+whereCond+` ORDER BY CREATED`, whereVal)
+		rows, err := db.Query(
+			`SELECT h.id, h.name, u.name as owner, enabled, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, start_time, end_time, h.created, h.updated
+			FROM hn.HOTSPOTS h, ekhoes.users u 
+			WHERE `+whereCond+`
+			AND h.owner = u.id
+			ORDER BY CREATED`, whereVal)
 
 		if err != nil {
+			fmt.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -223,6 +229,7 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 				&h.StartTime, &h.EndTime, &h.Created, &h.Updated,
 			)
 			if err != nil {
+				fmt.Println(err)
 				http.Error(w, "error reading rows: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -232,6 +239,7 @@ func getHotspot(w http.ResponseWriter, r *http.Request) {
 		//fmt.Println(hotspots)
 
 	} else {
+		fmt.Println("Error: database not available")
 		http.Error(w, "database not available", http.StatusInternalServerError)
 		return
 	}
@@ -263,15 +271,7 @@ func createHotspot(hotspot Hotspot) (*Hotspot, error) {
 	) VALUES (
 		$1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8
 	)
-	RETURNING created, updated
-`
-	/*
-		now := time.Now().UTC()
-		isoString := now.Format(time.RFC3339)
-
-		hotspot.StartTime = isoString
-		hotspot.EndTime = isoString
-	*/
+	RETURNING created, updated`
 
 	var created, updated time.Time
 
