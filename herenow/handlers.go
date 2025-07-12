@@ -27,7 +27,7 @@ func hnMessageHandler(socket *websocket.Conn, message Message) {
 
 		log.Printf("Received message from '%s' of type '%s': %s\n", claims["name"], message.Type, message.Text)
 	*/
-	log.Printf("Received message of type '%s/%s': %s\n", message.Type, message.Subtype, message.Text)
+	//log.Printf("Received message of type '%s/%s': %s\n", message.Type, message.Subtype, message.Text)
 
 	var reply Message
 
@@ -121,6 +121,10 @@ func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
 		return nil, errors.New("invalid token")
 	}
 
+	if claims["userId"].(string) == "" {
+		return nil, errors.New("missing user id in token")
+	}
+
 	return claims, nil
 }
 
@@ -145,6 +149,7 @@ func HotspotHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 */
+
 /**
  * get /hotspot/[id]
  * If id is missing, return all hotspots owned by logged user
@@ -160,6 +165,14 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if claims["userId"].(string) == "" {
+		log.Println("Error: Missing user id in token")
+		http.Error(w, "Missing user id in token", http.StatusUnauthorized)
+		return
+	}
+
+	userId := claims["userId"].(string)
+
 	whereCond := ""
 	whereVal := ""
 
@@ -172,21 +185,13 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 	//if len(parts) < 3 {
 	if id == "" { // All user's hotspots
 
-		if claims["userId"].(string) == "" {
-			log.Println("Error: Missing user id in token")
-			http.Error(w, "Missing user id in token", http.StatusUnauthorized)
-			return
-		}
-
-		userId := claims["userId"].(string)
-
-		whereCond = "OWNER = $1"
+		whereCond = "OWNER = $2"
 		whereVal = userId
 
 	} else { // Specific hotspot
 
 		//hotspotId = parts[2]
-		whereCond = "h.id = $1"
+		whereCond = "h.id = $2"
 		whereVal = id
 
 	}
@@ -198,11 +203,30 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 	if db != nil {
 
 		rows, err := db.Query(
-			`SELECT h.id, h.name, u.name as owner, enabled, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, start_time, end_time, h.created, h.updated
-			FROM hn.HOTSPOTS h, ekhoes.users u 
+			`SELECT h.id, h.name, u.name as owner, enabled, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, 
+			start_time, end_time, h.created, h.updated,
+
+			COALESCE(like_counts.total_likes, 0) AS likes,
+
+			EXISTS (
+				SELECT 1
+				FROM hn.LIKES l2
+				WHERE l2.hotspot_id = h.id AND l2.user_id = $1
+			) AS liked_by_me
+
+			FROM hn.HOTSPOTS h
+			JOIN ekhoes.users u ON h.owner = u.id
+
+			-- Join to count likes
+			LEFT JOIN (
+				SELECT hotspot_id, COUNT(*) AS total_likes
+				FROM hn.LIKES
+				GROUP BY hotspot_id
+			) AS like_counts ON like_counts.hotspot_id = h.id
+
 			WHERE `+whereCond+`
 			AND h.owner = u.id
-			ORDER BY CREATED`, whereVal)
+			ORDER BY CREATED`, userId, whereVal)
 
 		if err != nil {
 			fmt.Println(err)
@@ -217,6 +241,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 				&h.Id, &h.Name, &h.Owner, &h.Enabled,
 				&h.Position.Latitude, &h.Position.Longitude,
 				&h.StartTime, &h.EndTime, &h.Created, &h.Updated,
+				&h.Likes, &h.LikedByMe,
 			)
 			if err != nil {
 				fmt.Println(err)
@@ -363,11 +388,6 @@ func DeleteHotspot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if claims["userId"].(string) == "" {
-		http.Error(w, "Missing user id in token", http.StatusUnauthorized)
-		return
-	}
-
 	userId := claims["userId"].(string)
 
 	parts := strings.Split(r.URL.Path, "/")
@@ -392,6 +412,40 @@ func DeleteHotspot(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+/**
+ * POST /hotspot/{id}/like
+ */
+func LikeHotspot(w http.ResponseWriter, r *http.Request) {
+
+	addCorsHeaders(w, r)
+
+	claims, err := checkAuthorization(r)
+
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	hotspotId := chi.URLParam(r, "id")
+	userId := claims["userId"].(string)
+	IlikeIt := false
+
+	if r.Method == http.MethodPost {
+		IlikeIt = true
+	}
+
+	err = Like(hotspotId, userId, IlikeIt)
+
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

@@ -18,8 +18,6 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
-//var version = "1.0.0"
-
 type Callback func([]string) int
 
 type Command struct {
@@ -108,18 +106,6 @@ func Start(args []string) int {
 
 	log.Printf("Starting service on port %d...\n", conf.Port)
 
-	//router := http.NewServeMux()
-	/*
-		router.HandleFunc("/", getRoot)
-		router.HandleFunc("/metrics", getMetrics)
-
-		router.HandleFunc("/login", herenow.Login)
-		router.HandleFunc("/logout", herenow.Logout)
-		router.HandleFunc("GET /connect", herenow.HandleConnection)
-
-		router.HandleFunc("/hotspot", herenow.HotspotHandler)  // GET /hotspot
-		router.HandleFunc("/hotspot/", herenow.HotspotHandler) // POST/PUT/DELETE /hotspot/123
-	*/
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
@@ -153,7 +139,8 @@ func Start(args []string) int {
 			r.Delete("/", herenow.DeleteHotspot)
 
 			// POST /hotspot/{id}/like
-			//r.Post("/like", herenow.HotspotLikeHandler)
+			r.Post("/like", herenow.LikeHotspot)
+			r.Delete("/like", herenow.LikeHotspot)
 		})
 	})
 

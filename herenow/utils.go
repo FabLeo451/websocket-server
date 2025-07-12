@@ -28,6 +28,8 @@ type Hotspot struct {
 	Position  Location `json:"position"`
 	StartTime string   `json:"startTime"`
 	EndTime   string   `json:"endTime"`
+	Likes     int64    `json:"likes"`
+	LikedByMe bool     `json:"likedByMe"`
 	Created   string   `json:"created"`
 	Updated   string   `json:"updated"`
 }
@@ -188,4 +190,34 @@ func createHotspot(hotspot Hotspot) (*Hotspot, error) {
 	}
 
 	return &hotspot, nil
+}
+
+func Like(hotspotId string, userId string, like bool) error {
+
+	db := db.DB_GetConnection()
+
+	if db == nil {
+		log.Println("Error: database not available")
+		return errors.New("database not available")
+	}
+
+	var query string
+
+	if like {
+		query = `
+			INSERT INTO hn.LIKES (hotspot_id, user_id)
+			VALUES ($1, $2)
+			ON CONFLICT DO NOTHING`
+	} else {
+		query = `DELETE FROM hn.LIKES WHERE hotspot_id = $1 AND user_id = $2`
+	}
+
+	_, err := db.Exec(query, hotspotId, userId)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
 }
