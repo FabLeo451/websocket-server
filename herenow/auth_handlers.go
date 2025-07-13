@@ -82,6 +82,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isGuest {
+		id = "dummyGuestId"
 		name = credentials.Name
 	} else {
 

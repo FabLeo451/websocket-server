@@ -217,7 +217,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 			ORDER BY CREATED`, userId, whereVal)
 
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -232,7 +232,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 				&h.Likes, &h.LikedByMe,
 			)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				http.Error(w, "error reading rows: "+err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -242,7 +242,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 		//fmt.Println(hotspots)
 
 	} else {
-		fmt.Println("Error: database not available")
+		log.Println("Error: database not available")
 		http.Error(w, "database not available", http.StatusInternalServerError)
 		return
 	}
