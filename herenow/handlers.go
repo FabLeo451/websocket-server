@@ -297,7 +297,7 @@ func PostHotspot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(newHotspot)
 }
 
@@ -343,6 +343,8 @@ func PutHotspot(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 /**
