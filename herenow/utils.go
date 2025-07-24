@@ -25,6 +25,7 @@ type Hotspot struct {
 	Name      string   `json:"name"`
 	Owner     string   `json:"owner"`
 	Enabled   bool     `json:"enabled"`
+	Private   bool     `json:"private"`
 	Position  Location `json:"position"`
 	StartTime string   `json:"startTime"`
 	EndTime   string   `json:"endTime"`
@@ -57,7 +58,7 @@ func getNearbyHotspot(latitude float64, longitude float64) []Hotspot {
 
 	if db != nil {
 
-		rows, err := db.Query(`SELECT id, name, owner, enabled, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude
+		rows, err := db.Query(`SELECT id, name, owner, enabled, private, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude
 			FROM hn.HOTSPOTS 
 			WHERE ST_DWithin(
 				position,
@@ -76,7 +77,7 @@ func getNearbyHotspot(latitude float64, longitude float64) []Hotspot {
 		for rows.Next() {
 			var h Hotspot
 			err := rows.Scan(
-				&h.Id, &h.Name, &h.Owner, &h.Enabled,
+				&h.Id, &h.Name, &h.Owner, &h.Enabled, &h.Private,
 				&h.Position.Latitude, &h.Position.Longitude,
 			)
 			if err != nil {
@@ -110,7 +111,7 @@ func getHotspotsInBoundaries(boundaries Boundaries) []Hotspot {
 	}
 
 	query := `
-		SELECT id, name, owner, enabled, 
+		SELECT id, name, owner, enabled, private,
 		       ST_Y(position::geometry) AS latitude, 
 		       ST_X(position::geometry) AS longitude
 		FROM hn.HOTSPOTS 
@@ -142,7 +143,7 @@ func getHotspotsInBoundaries(boundaries Boundaries) []Hotspot {
 	for rows.Next() {
 		var h Hotspot
 		err := rows.Scan(
-			&h.Id, &h.Name, &h.Owner, &h.Enabled,
+			&h.Id, &h.Name, &h.Owner, &h.Enabled, &h.Private,
 			&h.Position.Latitude, &h.Position.Longitude,
 		)
 		if err != nil {
@@ -167,18 +168,18 @@ func createHotspot(hotspot Hotspot) (*Hotspot, error) {
 
 	query := `
 	INSERT INTO hn.HOTSPOTS (
-		id, name, owner, enabled, position, start_time, end_time
+		id, name, owner, enabled, position, start_time, end_time, private
 	) VALUES (
-		$1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8
+		$1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8, $9
 	)
 	RETURNING created, updated`
 
 	var created, updated time.Time
 
 	err := db.QueryRow(query,
-		id, hotspot.Name, hotspot.Owner, true,
+		id, hotspot.Name, hotspot.Owner, hotspot.Enabled,
 		hotspot.Position.Longitude, hotspot.Position.Latitude,
-		hotspot.StartTime, hotspot.EndTime,
+		hotspot.StartTime, hotspot.EndTime, hotspot.Private,
 	).Scan(&created, &updated)
 
 	hotspot.Created = created.Format(time.RFC3339)
