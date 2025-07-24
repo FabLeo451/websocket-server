@@ -1,6 +1,7 @@
 package herenow
 
 import (
+	"database/sql"
 	"errors"
 	"log"
 	"time"
@@ -45,6 +46,52 @@ func Init() bool {
 	db.RedisConnect()
 
 	return true
+}
+
+/**
+ * Return hotspot with the given id
+ */
+func GetHotspotById(id string) *Hotspot {
+
+	db := db.DB_GetConnection()
+
+	if db == nil {
+		log.Println("Error: database not available")
+		return nil
+	}
+
+	const query = `
+		SELECT id, name, owner, enabled, private,
+		       ST_Y(position::geometry) AS latitude, 
+		       ST_X(position::geometry) AS longitude,
+			   start_time, end_time
+		FROM hn.HOTSPOTS 
+		WHERE id = $1;
+	`
+
+	var hotspot Hotspot
+
+	err := db.QueryRow(query, id).Scan(
+		&hotspot.Id,
+		&hotspot.Name,
+		&hotspot.Owner,
+		&hotspot.Enabled,
+		&hotspot.Private,
+		&hotspot.Position.Latitude,
+		&hotspot.Position.Longitude,
+		&hotspot.StartTime,
+		&hotspot.EndTime,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("No hotspot found with id: %s", id)
+		} else {
+			log.Println("Query error:", err)
+		}
+		return nil
+	}
+
+	return &hotspot
 }
 
 /**
@@ -221,4 +268,22 @@ func Like(hotspotId string, userId string, like bool) error {
 	}
 
 	return nil
+}
+
+func CloneHotspot(id string) error {
+
+	hotspot := GetHotspotById(id)
+
+	if hotspot != nil {
+
+		log.Printf("Duplicating %v\n", hotspot)
+
+		hotspot.Name = "Copy of " + hotspot.Name
+		createHotspot(*hotspot)
+
+		return nil
+
+	} else {
+		return errors.New("hotspot not found")
+	}
 }

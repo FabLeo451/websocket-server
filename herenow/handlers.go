@@ -424,3 +424,32 @@ func LikeHotspot(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+/**
+ * POST /hotspot/{id}/clone
+ */
+func CloneHotspotHandler(w http.ResponseWriter, r *http.Request) {
+
+	addCorsHeaders(w, r)
+
+	_, err := checkAuthorization(r)
+
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	hotspotId := chi.URLParam(r, "id")
+	//userId := claims["userId"].(string)
+
+	err = CloneHotspot(hotspotId)
+
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}

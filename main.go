@@ -145,6 +145,9 @@ func Start(args []string) int {
 			// POST /hotspot/{id}/like
 			r.Post("/like", herenow.LikeHotspot)
 			r.Delete("/like", herenow.LikeHotspot)
+
+			// POST /hotspot/{id}/clone
+			r.Post("/clone", herenow.CloneHotspotHandler)
 		})
 	})
 
