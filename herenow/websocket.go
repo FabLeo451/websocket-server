@@ -132,7 +132,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 		switch msg.AppId {
 		case "here-now":
-			hnMessageHandler(conn, msg)
+			hnMessageHandler(conn, user["id"].(string), msg)
 		default:
 			if msg.Type == "ping" {
 				now := time.Now().UTC()

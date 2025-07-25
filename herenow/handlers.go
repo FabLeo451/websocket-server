@@ -19,7 +19,7 @@ import (
 /**
  * Handler for websocket messages
  */
-func hnMessageHandler(socket *websocket.Conn, message Message) {
+func hnMessageHandler(socket *websocket.Conn, userId string, message Message) {
 
 	//log.Printf("Received message of type '%s/%s': %s\n", message.Type, message.Subtype, message.Text)
 
@@ -57,7 +57,7 @@ func hnMessageHandler(socket *websocket.Conn, message Message) {
 				return
 			}
 
-			hotspots = getHotspotsInBoundaries(boundaries)
+			hotspots = getHotspotsInBoundaries(userId, boundaries)
 
 		default:
 			log.Printf("Unespected subtype: %s\n", message.Subtype)

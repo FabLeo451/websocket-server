@@ -147,7 +147,7 @@ func getNearbyHotspot(latitude float64, longitude float64) []Hotspot {
 /**
  * Return hotspots in the given boundaries
  */
-func getHotspotsInBoundaries(boundaries Boundaries) []Hotspot {
+func getHotspotsInBoundaries(userId string, boundaries Boundaries) []Hotspot {
 	var hotspots []Hotspot
 
 	db := db.DB_GetConnection()
@@ -171,7 +171,8 @@ func getHotspotsInBoundaries(boundaries Boundaries) []Hotspot {
 			position::geometry
 		)
 		AND NOW() BETWEEN start_time AND end_time
-		AND enabled = true;
+		AND enabled = true
+		AND (private = false OR (private = true AND owner = $5));
 	`
 
 	rows, err := db.Query(query,
@@ -179,6 +180,7 @@ func getHotspotsInBoundaries(boundaries Boundaries) []Hotspot {
 		boundaries.SouthWest.Latitude,
 		boundaries.NorthEast.Longitude,
 		boundaries.NorthEast.Latitude,
+		userId,
 	)
 
 	if err != nil {
