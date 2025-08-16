@@ -191,7 +191,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 	if db != nil {
 
 		rows, err := db.Query(
-			`SELECT h.id, h.name, u.name as owner, enabled, private, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, 
+			`SELECT h.id, h.name, h.description, u.name as owner, enabled, private, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, 
 			start_time, end_time, h.created, h.updated,
 
 			COALESCE(like_counts.total_likes, 0) AS likes,
@@ -226,7 +226,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			var h Hotspot
 			err := rows.Scan(
-				&h.Id, &h.Name, &h.Owner, &h.Enabled, &h.Private,
+				&h.Id, &h.Name, &h.Description, &h.Owner, &h.Enabled, &h.Private,
 				&h.Position.Latitude, &h.Position.Longitude,
 				&h.StartTime, &h.EndTime, &h.Created, &h.Updated,
 				&h.Likes, &h.LikedByMe,
@@ -335,9 +335,9 @@ func PutHotspot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `update hn.HOTSPOTS set name=$1, position = ST_SetSRID(ST_MakePoint($2, $3), 4326), start_time = $4, end_time = $5, enabled = $6, private = $7 WHERE id = $8`
+	query := `update hn.HOTSPOTS set name=$1, description=$2, position = ST_SetSRID(ST_MakePoint($3, $4), 4326), start_time = $5, end_time = $6, enabled = $7, private = $8 WHERE id = $9`
 
-	_, err = db.Exec(query, hotspot.Name, hotspot.Position.Longitude, hotspot.Position.Latitude, hotspot.StartTime, hotspot.EndTime, hotspot.Enabled, hotspot.Private, hotspotId)
+	_, err = db.Exec(query, hotspot.Name, hotspot.Description, hotspot.Position.Longitude, hotspot.Position.Latitude, hotspot.StartTime, hotspot.EndTime, hotspot.Enabled, hotspot.Private, hotspotId)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
