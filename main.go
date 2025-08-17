@@ -151,6 +151,8 @@ func Start(args []string) int {
 		})
 	})
 
+	r.Get("/categories", herenow.GetCategoriesHandler)
+
 	addr := fmt.Sprintf(":%d", conf.Port)
 
 	log.Printf("Service ready\n")

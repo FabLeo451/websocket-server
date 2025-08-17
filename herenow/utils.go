@@ -25,6 +25,7 @@ type Hotspot struct {
 	Id          string   `json:"id"`
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
+	Category    string   `json:"category"`
 	Owner       string   `json:"owner"`
 	Enabled     bool     `json:"enabled"`
 	Private     bool     `json:"private"`
@@ -35,6 +36,11 @@ type Hotspot struct {
 	LikedByMe   bool     `json:"likedByMe"`
 	Created     string   `json:"created"`
 	Updated     string   `json:"updated"`
+}
+
+type Category struct {
+	Id    string `json:"value"` // Expo select control needs "value"
+	Label string `json:"label"`
 }
 
 func Init() bool {
@@ -62,7 +68,7 @@ func GetHotspotById(id string) *Hotspot {
 	}
 
 	const query = `
-		SELECT id, name, description, owner, enabled, private,
+		SELECT id, name, description, category, owner, enabled, private,
 		       ST_Y(position::geometry) AS latitude, 
 		       ST_X(position::geometry) AS longitude,
 			   start_time, end_time
@@ -76,6 +82,7 @@ func GetHotspotById(id string) *Hotspot {
 		&hotspot.Id,
 		&hotspot.Name,
 		&hotspot.Description,
+		&hotspot.Category,
 		&hotspot.Owner,
 		&hotspot.Enabled,
 		&hotspot.Private,
@@ -107,7 +114,7 @@ func getNearbyHotspot(latitude float64, longitude float64) []Hotspot {
 
 	if db != nil {
 
-		rows, err := db.Query(`SELECT id, name, description, owner, enabled, private, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude
+		rows, err := db.Query(`SELECT id, name, description, category, owner, enabled, private, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude
 			FROM hn.HOTSPOTS 
 			WHERE ST_DWithin(
 				position,
@@ -126,7 +133,7 @@ func getNearbyHotspot(latitude float64, longitude float64) []Hotspot {
 		for rows.Next() {
 			var h Hotspot
 			err := rows.Scan(
-				&h.Id, &h.Name, &h.Description, &h.Owner, &h.Enabled, &h.Private,
+				&h.Id, &h.Name, &h.Description, &h.Category, &h.Owner, &h.Enabled, &h.Private,
 				&h.Position.Latitude, &h.Position.Longitude,
 			)
 			if err != nil {
@@ -160,7 +167,7 @@ func getHotspotsInBoundaries(userId string, boundaries Boundaries) []Hotspot {
 	}
 
 	query := `
-		SELECT id, name, description, owner, enabled, private,
+		SELECT id, name, description, category, owner, enabled, private,
 		       ST_Y(position::geometry) AS latitude, 
 		       ST_X(position::geometry) AS longitude
 		FROM hn.HOTSPOTS 
@@ -194,7 +201,7 @@ func getHotspotsInBoundaries(userId string, boundaries Boundaries) []Hotspot {
 	for rows.Next() {
 		var h Hotspot
 		err := rows.Scan(
-			&h.Id, &h.Name, &h.Description, &h.Owner, &h.Enabled, &h.Private,
+			&h.Id, &h.Name, &h.Description, &h.Category, &h.Owner, &h.Enabled, &h.Private,
 			&h.Position.Latitude, &h.Position.Longitude,
 		)
 		if err != nil {
@@ -219,16 +226,16 @@ func createHotspot(hotspot Hotspot) (*Hotspot, error) {
 
 	query := `
 	INSERT INTO hn.HOTSPOTS (
-		id, name, description, owner, enabled, position, start_time, end_time, private
+		id, name, description, category, owner, enabled, position, start_time, end_time, private
 	) VALUES (
-		$1, $2, $3, $4, $5, ST_SetSRID(ST_MakePoint($6, $7), 4326), $8, $9, $10
+		$1, $2, $3, $4, $5, $6, ST_SetSRID(ST_MakePoint($7, $8), 4326), $9, $10, $11
 	)
 	RETURNING created, updated`
 
 	var created, updated time.Time
 
 	err := db.QueryRow(query,
-		id, hotspot.Name, hotspot.Description, hotspot.Owner, hotspot.Enabled,
+		id, hotspot.Name, hotspot.Description, hotspot.Category, hotspot.Owner, hotspot.Enabled,
 		hotspot.Position.Longitude, hotspot.Position.Latitude,
 		hotspot.StartTime, hotspot.EndTime, hotspot.Private,
 	).Scan(&created, &updated)

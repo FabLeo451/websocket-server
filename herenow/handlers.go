@@ -191,7 +191,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 	if db != nil {
 
 		rows, err := db.Query(
-			`SELECT h.id, h.name, h.description, u.name as owner, enabled, private, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, 
+			`SELECT h.id, h.name, h.description, h.category, u.name as owner, enabled, private, ST_Y(position::geometry) AS latitude, ST_X(position::geometry) AS longitude, 
 			start_time, end_time, h.created, h.updated,
 
 			COALESCE(like_counts.total_likes, 0) AS likes,
@@ -226,7 +226,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			var h Hotspot
 			err := rows.Scan(
-				&h.Id, &h.Name, &h.Description, &h.Owner, &h.Enabled, &h.Private,
+				&h.Id, &h.Name, &h.Description, &h.Category, &h.Owner, &h.Enabled, &h.Private,
 				&h.Position.Latitude, &h.Position.Longitude,
 				&h.StartTime, &h.EndTime, &h.Created, &h.Updated,
 				&h.Likes, &h.LikedByMe,
@@ -335,9 +335,9 @@ func PutHotspot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `update hn.HOTSPOTS set name=$1, description=$2, position = ST_SetSRID(ST_MakePoint($3, $4), 4326), start_time = $5, end_time = $6, enabled = $7, private = $8 WHERE id = $9`
+	query := `update hn.HOTSPOTS set name=$1, description=$2, category=$3, position = ST_SetSRID(ST_MakePoint($4, $5), 4326), start_time = $6, end_time = $7, enabled = $8, private = $9 WHERE id = $10`
 
-	_, err = db.Exec(query, hotspot.Name, hotspot.Description, hotspot.Position.Longitude, hotspot.Position.Latitude, hotspot.StartTime, hotspot.EndTime, hotspot.Enabled, hotspot.Private, hotspotId)
+	_, err = db.Exec(query, hotspot.Name, hotspot.Description, hotspot.Category, hotspot.Position.Longitude, hotspot.Position.Latitude, hotspot.StartTime, hotspot.EndTime, hotspot.Enabled, hotspot.Private, hotspotId)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
@@ -452,4 +452,50 @@ func CloneHotspotHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+/**
+ * GET /categories
+ */
+func GetCategoriesHandler(w http.ResponseWriter, r *http.Request) {
+
+	addCorsHeaders(w, r)
+
+	var categories []Category
+
+	db := db.DB_GetConnection()
+
+	if db != nil {
+
+		rows, err := db.Query(`SELECT id, label from hn.categories order by id`)
+
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var c Category
+			err := rows.Scan(&c.Id, &c.Label)
+
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "error reading rows: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			categories = append(categories, c)
+		}
+
+	} else {
+		log.Println("Error: database not available")
+		http.Error(w, "database not available", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(categories)
 }
