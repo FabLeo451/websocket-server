@@ -7,10 +7,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+var buildTime string
+
 type Config struct {
 	Package struct {
-		Name    string
-		Version string
+		Name      string
+		Version   string
+		BuildTime string
 	}
 	DB struct {
 		Host      string
@@ -18,6 +21,7 @@ type Config struct {
 		User      string
 		Password  string
 		Name      string
+		Schema    string
 		Heartbeat int
 		PoolSize  int
 	}
@@ -30,6 +34,7 @@ type Config struct {
 	Port           int
 	Verbose        bool
 	HostMountPoint string
+	JwtSecret      string
 }
 
 var conf Config
@@ -41,17 +46,20 @@ func Init() {
 		log.Println(".env non trovato, continuo lo stesso...")
 	}
 
+	conf.Package.BuildTime = buildTime
+
 	// Configura Viper per leggere da ENV
 	viper.AutomaticEnv()
 
-	conf.Package.Name = "api"
-	conf.Package.Version = "1.0.0-alpha1"
+	conf.Package.Name = "Websocket server"
+	conf.Package.Version = "1.0.0-alpha-7"
 
 	conf.DB.Host = viper.GetString("DB_HOST")
 	conf.DB.Port = viper.GetInt("DB_PORT")
 	conf.DB.User = viper.GetString("DB_USER")
 	conf.DB.Password = viper.GetString("DB_PASSWORD")
 	conf.DB.Name = viper.GetString("DB_NAME")
+	conf.DB.Schema = viper.GetString("DB_SCHEMA")
 	conf.DB.Heartbeat = viper.GetInt("DB_HEARTBEAT")
 	conf.DB.PoolSize = viper.GetInt("DB_POOLSIZE")
 
@@ -63,6 +71,7 @@ func Init() {
 	conf.Port = viper.GetInt("PORT")
 	conf.Verbose = viper.GetBool("VERBOSE")
 	conf.HostMountPoint = viper.GetString("HOST_MOUNT_POINT")
+	conf.JwtSecret = viper.GetString("JWT_SECRET")
 
 	if err := viper.Unmarshal(&conf); err != nil {
 		log.Fatalf("errore unmarshalling config: %v", err)

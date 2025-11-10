@@ -1,8 +1,11 @@
-package main
+package db
 
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -25,10 +28,13 @@ var (
  */
 func DB_Open() (*sql.DB, error) {
 
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", conf.DB.Host, conf.DB.Port, conf.DB.User, conf.DB.Password, conf.DB.Name)
+	poolSize, _ := strconv.Atoi(os.Getenv("DB_POOLSIZE"))
+	port, _ := strconv.Atoi(os.Getenv("DB_PORT"))
+
+	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", os.Getenv("DB_HOST"), port, os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
 	db, err := sql.Open("postgres", psqlconn)
 
-	db.SetMaxOpenConns(conf.DB.PoolSize)
+	db.SetMaxOpenConns(poolSize)
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxLifetime(time.Hour)
 
@@ -71,7 +77,9 @@ func DB_Ping() bool {
 // You can stop the worker by closing the quit channel: close(quit)
 func DB_KeepAlive() {
 
-	ticker := time.NewTicker(time.Duration(conf.DB.Heartbeat) * time.Second)
+	heartbeat, _ := strconv.Atoi(os.Getenv("DB_HEARTBEAT"))
+
+	ticker := time.NewTicker(time.Duration(heartbeat) * time.Second)
 
 	quit := make(chan struct{})
 
@@ -79,7 +87,7 @@ func DB_KeepAlive() {
 		for {
 			select {
 			case <-ticker.C:
-				//LogWrite("Ping...\n")
+				//log.Printf("Ping...\n")
 
 				if !DB_Ping() {
 					fmt.Println("Error: Database unavailable")
@@ -95,7 +103,7 @@ func DB_KeepAlive() {
 
 func DB_ConnectKeepAlive() *sql.DB {
 
-	LogWrite("Connecting to database %s:%d...\n", conf.DB.Host, conf.DB.Port)
+	log.Printf("Connecting to database %s:%s...\n", os.Getenv("DB_HOST"), os.Getenv("DB_HOST"))
 
 	conn, err := DB_Open()
 
@@ -110,7 +118,7 @@ func DB_ConnectKeepAlive() *sql.DB {
 
 		_connection = conn
 
-		LogWrite("Starting keep alive function...\n")
+		log.Printf("Starting keep alive function...\n")
 		DB_KeepAlive()
 
 	} else {
@@ -123,22 +131,23 @@ func DB_ConnectKeepAlive() *sql.DB {
 
 func RedisConnect() *redis.Client {
 	once.Do(func() {
-		addr := fmt.Sprintf("%s:%d", conf.Redis.Host, conf.Redis.Port)
+		addr := fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
+		poolSize, _ := strconv.Atoi(os.Getenv("REDIS_POOLSIZE"))
 
-		LogWrite("Connecting to Redis %s ...\n", addr)
+		log.Printf("Connecting to Redis %s ...\n", addr)
 
 		_redisConn = redis.NewClient(&redis.Options{
 			Addr:     addr,
-			Password: conf.Redis.Password,
+			Password: os.Getenv("REDIS_PASSWORD"),
 			DB:       0,
-			PoolSize: conf.Redis.PoolSize,
+			PoolSize: poolSize,
 		})
 
 		_, err := _redisConn.Ping(context.Background()).Result()
 		if err != nil {
-			LogWrite("Redis connection failed: %v\n", err)
+			log.Printf("Redis connection failed: %v\n", err)
 		} else {
-			LogWrite("Redis connected\n")
+			log.Printf("Redis connected\n")
 		}
 	})
 

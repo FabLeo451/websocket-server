@@ -1,15 +1,22 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path"
-)
+	"websocket-server/herenow"
 
-//var version = "1.0.0"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/mem"
+)
 
 type Callback func([]string) int
 
@@ -21,21 +28,70 @@ type Command struct {
 
 var flagVersion = false
 
-// Middleware per CORS
-func handleCORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Imposta gli header CORS
-		w.Header().Set("Access-Control-Allow-Origin", "*")                                // Consenti tutte le origini
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS") // Metodi consentiti
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")                    // Intestazioni consentite
+func getRoot(w http.ResponseWriter, r *http.Request) {
 
-		// Se la richiesta è un "preflight" (OPTIONS), rispondi subito
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	//fmt.Printf("%s: %s %s %s\n", r.RemoteAddr, r.UserAgent(), r.Method, r.URL)
+	//io.WriteString(w, "This is my website!\n")
+
+	response, _ := json.Marshal(conf.Package)
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(response)
+}
+
+type Host struct {
+	Mem  *mem.VirtualMemoryStat
+	Disk *disk.UsageStat
+}
+
+func getMetrics(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Content-Type", "application/json")
+
+	metrics := map[string]interface{}{
+		"activeConnections": herenow.GetActiveConnectionsCount(),
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(metrics)
+}
+
+func DynamicCORSMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+
+		if origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Vary", "Origin")
+		}
+
+		// Preflight
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
-		// Passa alla gestione della richiesta
 		next.ServeHTTP(w, r)
 	})
 }
@@ -47,66 +103,67 @@ func Start(args []string) int {
 
 	fmt.Printf("\n   *** %s %s ***\n\n", conf.Package.Name, conf.Package.Version)
 
-	conn := DB_ConnectKeepAlive()
-
-	if conn == nil {
+	if !herenow.Init() {
 		return 1
 	}
 
-	RedisConnect()
+	log.Printf("Starting service on port %d...\n", conf.Port)
 
-	LogWrite("Starting service on port %d...\n", conf.Port)
+	r := chi.NewRouter()
 
-	router := http.NewServeMux()
-	router.HandleFunc("GET /", getRoot)
-	router.HandleFunc("GET /metrics", getMetrics)
-	//router.HandleFunc("POST /user", createUser)
-	//router.HandleFunc("POST /login", login)
-	router.HandleFunc("GET /ws", handleConnection)
+	r.Use(middleware.Logger)
+	r.Use(DynamicCORSMiddleware)
+
+	// Static routes
+	r.Get("/", getRoot)
+	r.Get("/metrics", getMetrics)
+	r.Post("/login", herenow.Login)
+	r.Post("/logout", herenow.Logout)
+
+	// Alternative: method prefix syntax (chi supports it too)
+	r.Method("GET", "/connect", http.HandlerFunc(herenow.HandleConnection))
+
+	// /hotspot routes
+	r.Route("/hotspot", func(r chi.Router) {
+		// GET /hotspot
+		r.Get("/", herenow.GetHotspot)
+
+		// POST /hotspot
+		r.Post("/", herenow.PostHotspot)
+
+		// Routes with /hotspot/{id}
+		r.Route("/{id}", func(r chi.Router) {
+			// GET /hotspot/{id}
+			r.Get("/", herenow.GetHotspot)
+
+			// PUT /hotspot/{id}
+			r.Put("/", herenow.PutHotspot)
+
+			// DELETE /hotspot/{id}
+			r.Delete("/", herenow.DeleteHotspot)
+
+			// POST /hotspot/{id}/like
+			r.Post("/like", herenow.LikeHotspot)
+			r.Delete("/like", herenow.LikeHotspot)
+
+			// POST /hotspot/{id}/clone
+			r.Post("/clone", herenow.CloneHotspotHandler)
+		})
+	})
+
+	r.Get("/categories", herenow.GetCategoriesHandler)
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 
-	// Usa il middleware per CORS
-	http.Handle("/", handleCORS(router))
+	log.Printf("Service ready\n")
 
-	LogWrite("Service ready\n")
-
-	err := http.ListenAndServe(addr, router)
+	err := http.ListenAndServe(addr, r)
 
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
 	} else if err != nil {
 		fmt.Printf("error starting server: %s\n", err)
 		os.Exit(1)
-	}
-
-	return 0
-}
-
-/**
- * Check connections
- */
-func Check(args []string) int {
-
-	fmt.Printf("Connecting to database %s:%d... ", conf.DB.Host, conf.DB.Port)
-
-	db, err := DB_Open()
-
-	if err == nil {
-
-		fmt.Println("Success")
-
-		fmt.Printf("Pinging database... ")
-
-		err = db.Ping()
-
-		if err == nil {
-			fmt.Println("Success")
-		} else {
-			fmt.Printf("Error: %s\n", err.Error())
-		}
-	} else {
-		fmt.Printf("Error: %s\n", err.Error())
 	}
 
 	return 0
@@ -124,7 +181,6 @@ func main() {
 
 	mapCommands := make(map[string]Command)
 	mapCommands["start"] = Command{Start, "", "Start service"}
-	mapCommands["check"] = Command{Check, "", "Check connections"}
 
 	flag.BoolVar(&flagVersion, "v", false, "Show version")
 	flag.IntVar(&conf.Port, "P", 9876, "Set server port")
