@@ -392,7 +392,7 @@ func DeleteHotspot(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
- * POST /hotspot/{id}/like
+ * POST/DELETE /hotspot/{id}/like
  */
 func LikeHotspot(w http.ResponseWriter, r *http.Request) {
 
@@ -498,4 +498,38 @@ func GetCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(categories)
+}
+
+/**
+ * POST/DELETE /hotspot/{id}/subscription
+ */
+func SubscribeUnsubscribeHandler(w http.ResponseWriter, r *http.Request) {
+
+	//addCorsHeaders(w, r)
+
+	claims, err := checkAuthorization(r)
+
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	hotspotId := chi.URLParam(r, "id")
+	userId := claims["userId"].(string)
+	subscriptionFlag := false
+
+	if r.Method == http.MethodPost {
+		subscriptionFlag = true
+	}
+
+	err = Subscribe(hotspotId, userId, subscriptionFlag)
+
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

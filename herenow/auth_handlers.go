@@ -176,6 +176,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`{"token":"%s", "name":"%s"}`, token, name)))
 
+	//fmt.Println(token)
+
 	if isGuest {
 		log.Printf("Guest %s entered\n", sess.User.Name)
 	} else {
