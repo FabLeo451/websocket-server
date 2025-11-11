@@ -34,6 +34,7 @@ type Hotspot struct {
 	EndTime     string   `json:"endTime"`
 	Likes       int64    `json:"likes"`
 	LikedByMe   bool     `json:"likedByMe"`
+	Subscribed  bool     `json:"subscribed"`
 	Created     string   `json:"created"`
 	Updated     string   `json:"updated"`
 }
