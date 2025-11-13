@@ -22,21 +22,22 @@ type Boundaries struct {
 }
 
 type Hotspot struct {
-	Id          string   `json:"id"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Category    string   `json:"category"`
-	Owner       string   `json:"owner"`
-	Enabled     bool     `json:"enabled"`
-	Private     bool     `json:"private"`
-	Position    Location `json:"position"`
-	StartTime   string   `json:"startTime"`
-	EndTime     string   `json:"endTime"`
-	Likes       int64    `json:"likes"`
-	LikedByMe   bool     `json:"likedByMe"`
-	Subscribed  bool     `json:"subscribed"`
-	Created     string   `json:"created"`
-	Updated     string   `json:"updated"`
+	Id            string   `json:"id"`
+	Name          string   `json:"name"`
+	Description   string   `json:"description"`
+	Category      string   `json:"category"`
+	Owner         string   `json:"owner"`
+	Enabled       bool     `json:"enabled"`
+	Private       bool     `json:"private"`
+	Position      Location `json:"position"`
+	StartTime     string   `json:"startTime"`
+	EndTime       string   `json:"endTime"`
+	Likes         int64    `json:"likes"`
+	LikedByMe     bool     `json:"likedByMe"`
+	Subscriptions int64    `json:"subscriptions"`
+	Subscribed    bool     `json:"subscribed"`
+	Created       string   `json:"created"`
+	Updated       string   `json:"updated"`
 }
 
 type Category struct {

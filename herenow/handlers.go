@@ -202,6 +202,8 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 				WHERE l2.hotspot_id = h.id AND l2.user_id = $1
 			) AS liked_by_me,
 
+			COALESCE(subs_counts.total_subs, 0) AS subscriptions,
+
 			EXISTS (
 				SELECT 1
 				FROM hn.SUBSCRIPTIONS sub
@@ -217,6 +219,13 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 				FROM hn.LIKES
 				GROUP BY hotspot_id
 			) AS like_counts ON like_counts.hotspot_id = h.id
+
+			-- Join to count subscriptions
+			LEFT JOIN (
+				SELECT hotspot_id, COUNT(*) AS total_subs
+				FROM hn.SUBSCRIPTIONS
+				GROUP BY hotspot_id
+			) AS subs_counts ON subs_counts.hotspot_id = h.id
 
 			WHERE `+whereCond+`
 			AND h.owner = u.id
@@ -235,7 +244,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 				&h.Id, &h.Name, &h.Description, &h.Category, &h.Owner, &h.Enabled, &h.Private,
 				&h.Position.Latitude, &h.Position.Longitude,
 				&h.StartTime, &h.EndTime, &h.Created, &h.Updated,
-				&h.Likes, &h.LikedByMe, &h.Subscribed,
+				&h.Likes, &h.LikedByMe, &h.Subscriptions, &h.Subscribed,
 			)
 			if err != nil {
 				log.Println(err)
