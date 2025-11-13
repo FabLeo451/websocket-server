@@ -208,7 +208,9 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 				SELECT 1
 				FROM hn.SUBSCRIPTIONS sub
 				WHERE sub.hotspot_id = h.id AND sub.user_id = $1
-			) AS subscribed
+			) AS subscribed,
+
+			(h.owner = $1) AS owned_by_me
 
 			FROM hn.HOTSPOTS h
 			JOIN ekhoes.users u ON h.owner = u.id
@@ -244,7 +246,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 				&h.Id, &h.Name, &h.Description, &h.Category, &h.Owner, &h.Enabled, &h.Private,
 				&h.Position.Latitude, &h.Position.Longitude,
 				&h.StartTime, &h.EndTime, &h.Created, &h.Updated,
-				&h.Likes, &h.LikedByMe, &h.Subscriptions, &h.Subscribed,
+				&h.Likes, &h.LikedByMe, &h.Subscriptions, &h.Subscribed, &h.OwnedByMe,
 			)
 			if err != nil {
 				log.Println(err)

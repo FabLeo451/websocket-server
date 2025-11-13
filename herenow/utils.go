@@ -27,6 +27,7 @@ type Hotspot struct {
 	Description   string   `json:"description"`
 	Category      string   `json:"category"`
 	Owner         string   `json:"owner"`
+	OwnedByMe     bool     `json:"ownedByMe"`
 	Enabled       bool     `json:"enabled"`
 	Private       bool     `json:"private"`
 	Position      Location `json:"position"`
