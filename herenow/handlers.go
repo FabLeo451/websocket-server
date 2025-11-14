@@ -527,7 +527,7 @@ func SubscribeUnsubscribeHandler(w http.ResponseWriter, r *http.Request) {
 	claims, err := checkAuthorization(r)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
@@ -543,10 +543,63 @@ func SubscribeUnsubscribeHandler(w http.ResponseWriter, r *http.Request) {
 	err = Subscribe(hotspotId, userId, subscriptionFlag)
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
+}
+
+/**
+ * GET /mysubscriptions[?count]
+ */
+func GetMySubscriptions(w http.ResponseWriter, r *http.Request) {
+
+	//addCorsHeaders(w, r)
+
+	claims, err := checkAuthorization(r)
+
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	db := db.DB_GetConnection()
+
+	if db == nil {
+		log.Println("Error: database not available")
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	userId := claims["userId"].(string)
+	//countFlag := r.URL.Query().Has("count")
+	var count int16
+
+	rows, err := db.Query(`SELECT count(1) from hn.subscriptions where user_id = $1`, userId)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		//var c Category
+		err := rows.Scan(&count)
+
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "error reading rows: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		//categories = append(categories, c)
+	}
+
+	w.Write([]byte(fmt.Sprintf(`{"count":%d }`, count)))
 	w.WriteHeader(http.StatusOK)
 }

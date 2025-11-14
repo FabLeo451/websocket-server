@@ -156,6 +156,7 @@ func Start(args []string) int {
 	})
 
 	r.Get("/categories", herenow.GetCategoriesHandler)
+	r.Get("/mysubscriptions", herenow.GetMySubscriptions)
 
 	addr := fmt.Sprintf(":%d", conf.Port)
 
