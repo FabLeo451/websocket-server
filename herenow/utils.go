@@ -22,20 +22,23 @@ type Boundaries struct {
 }
 
 type Hotspot struct {
-	Id          string   `json:"id"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Category    string   `json:"category"`
-	Owner       string   `json:"owner"`
-	Enabled     bool     `json:"enabled"`
-	Private     bool     `json:"private"`
-	Position    Location `json:"position"`
-	StartTime   string   `json:"startTime"`
-	EndTime     string   `json:"endTime"`
-	Likes       int64    `json:"likes"`
-	LikedByMe   bool     `json:"likedByMe"`
-	Created     string   `json:"created"`
-	Updated     string   `json:"updated"`
+	Id            string   `json:"id"`
+	Name          string   `json:"name"`
+	Description   string   `json:"description"`
+	Category      string   `json:"category"`
+	Owner         string   `json:"owner"`
+	OwnedByMe     bool     `json:"ownedByMe"`
+	Enabled       bool     `json:"enabled"`
+	Private       bool     `json:"private"`
+	Position      Location `json:"position"`
+	StartTime     string   `json:"startTime"`
+	EndTime       string   `json:"endTime"`
+	Likes         int64    `json:"likes"`
+	LikedByMe     bool     `json:"likedByMe"`
+	Subscriptions int64    `json:"subscriptions"`
+	Subscribed    bool     `json:"subscribed"`
+	Created       string   `json:"created"`
+	Updated       string   `json:"updated"`
 }
 
 type Category struct {
@@ -251,6 +254,9 @@ func createHotspot(hotspot Hotspot) (*Hotspot, error) {
 	return &hotspot, nil
 }
 
+/**
+ * Add or remove a like
+ */
 func Like(hotspotId string, userId string, like bool) error {
 
 	db := db.DB_GetConnection()
@@ -297,4 +303,37 @@ func CloneHotspot(id string) error {
 	} else {
 		return errors.New("hotspot not found")
 	}
+}
+
+/**
+ * Subscribe/unsubscribe
+ */
+func Subscribe(hotspotId string, userId string, like bool) error {
+
+	db := db.DB_GetConnection()
+
+	if db == nil {
+		log.Println("Error: database not available")
+		return errors.New("database not available")
+	}
+
+	var query string
+
+	if like {
+		query = `
+			INSERT INTO hn.SUBSCRIPTIONS (hotspot_id, user_id)
+			VALUES ($1, $2)
+			ON CONFLICT DO NOTHING`
+	} else {
+		query = `DELETE FROM hn.SUBSCRIPTIONS WHERE hotspot_id = $1 AND user_id = $2`
+	}
+
+	_, err := db.Exec(query, hotspotId, userId)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
 }

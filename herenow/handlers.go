@@ -200,7 +200,17 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 				SELECT 1
 				FROM hn.LIKES l2
 				WHERE l2.hotspot_id = h.id AND l2.user_id = $1
-			) AS liked_by_me
+			) AS liked_by_me,
+
+			COALESCE(subs_counts.total_subs, 0) AS subscriptions,
+
+			EXISTS (
+				SELECT 1
+				FROM hn.SUBSCRIPTIONS sub
+				WHERE sub.hotspot_id = h.id AND sub.user_id = $1
+			) AS subscribed,
+
+			(h.owner = $1) AS owned_by_me
 
 			FROM hn.HOTSPOTS h
 			JOIN ekhoes.users u ON h.owner = u.id
@@ -211,6 +221,13 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 				FROM hn.LIKES
 				GROUP BY hotspot_id
 			) AS like_counts ON like_counts.hotspot_id = h.id
+
+			-- Join to count subscriptions
+			LEFT JOIN (
+				SELECT hotspot_id, COUNT(*) AS total_subs
+				FROM hn.SUBSCRIPTIONS
+				GROUP BY hotspot_id
+			) AS subs_counts ON subs_counts.hotspot_id = h.id
 
 			WHERE `+whereCond+`
 			AND h.owner = u.id
@@ -229,7 +246,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 				&h.Id, &h.Name, &h.Description, &h.Category, &h.Owner, &h.Enabled, &h.Private,
 				&h.Position.Latitude, &h.Position.Longitude,
 				&h.StartTime, &h.EndTime, &h.Created, &h.Updated,
-				&h.Likes, &h.LikedByMe,
+				&h.Likes, &h.LikedByMe, &h.Subscriptions, &h.Subscribed, &h.OwnedByMe,
 			)
 			if err != nil {
 				log.Println(err)
@@ -392,7 +409,7 @@ func DeleteHotspot(w http.ResponseWriter, r *http.Request) {
 }
 
 /**
- * POST /hotspot/{id}/like
+ * POST/DELETE /hotspot/{id}/like
  */
 func LikeHotspot(w http.ResponseWriter, r *http.Request) {
 
@@ -498,4 +515,91 @@ func GetCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(categories)
+}
+
+/**
+ * POST/DELETE /hotspot/{id}/subscription
+ */
+func SubscribeUnsubscribeHandler(w http.ResponseWriter, r *http.Request) {
+
+	//addCorsHeaders(w, r)
+
+	claims, err := checkAuthorization(r)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	hotspotId := chi.URLParam(r, "id")
+	userId := claims["userId"].(string)
+	subscriptionFlag := false
+
+	if r.Method == http.MethodPost {
+		subscriptionFlag = true
+	}
+
+	err = Subscribe(hotspotId, userId, subscriptionFlag)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+/**
+ * GET /mysubscriptions[?count]
+ */
+func GetMySubscriptions(w http.ResponseWriter, r *http.Request) {
+
+	//addCorsHeaders(w, r)
+
+	claims, err := checkAuthorization(r)
+
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	db := db.DB_GetConnection()
+
+	if db == nil {
+		log.Println("Error: database not available")
+		http.Error(w, "Database not available", http.StatusInternalServerError)
+		return
+	}
+
+	userId := claims["userId"].(string)
+	//countFlag := r.URL.Query().Has("count")
+	var count int16
+
+	rows, err := db.Query(`SELECT count(1) from hn.subscriptions where user_id = $1`, userId)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		//var c Category
+		err := rows.Scan(&count)
+
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "error reading rows: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		//categories = append(categories, c)
+	}
+
+	w.Write([]byte(fmt.Sprintf(`{"count":%d }`, count)))
+	w.WriteHeader(http.StatusOK)
 }
