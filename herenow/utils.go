@@ -2,8 +2,12 @@ package herenow
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,6 +48,12 @@ type Hotspot struct {
 type Category struct {
 	Id    string `json:"value"` // Expo select control needs "value"
 	Label string `json:"label"`
+}
+
+type SearchResult struct {
+	Lat         string `json:"lat"`
+	Lon         string `json:"lon"`
+	DisplayName string `json:"display_name"`
 }
 
 func Init() bool {
@@ -336,4 +346,50 @@ func Subscribe(hotspotId string, userId string, like bool) error {
 	}
 
 	return nil
+}
+
+/**
+ * Search
+ */
+func Search(query string) (*SearchResult, error) {
+
+	if query == "" {
+		return nil, fmt.Errorf("missing query")
+	}
+
+	baseURL := "https://nominatim.openstreetmap.org/search"
+
+	params := url.Values{}
+	params.Set("q", query)
+	params.Set("format", "json")
+	params.Set("limit", "1")
+
+	endpoint := fmt.Sprintf("%s?%s", baseURL, params.Encode())
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("User-Agent", "HereNow/1.0.0")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var results []SearchResult
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		return nil, err
+	}
+
+	if len(results) == 0 {
+		return nil, nil
+	}
+
+	return &results[0], nil
 }
