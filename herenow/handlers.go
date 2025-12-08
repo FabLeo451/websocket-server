@@ -603,3 +603,42 @@ func GetMySubscriptions(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf(`{"count":%d }`, count)))
 	w.WriteHeader(http.StatusOK)
 }
+
+/**
+ * GET /search?q=infinity%20hotel%20munich&format=json&limit=1
+ */
+func SearchHandler(w http.ResponseWriter, r *http.Request) {
+	/*
+		_, err := checkAuthorization(r)
+
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+	*/
+
+	q := r.URL.Query().Get("q")
+
+	if q == "" {
+		log.Println("missing query")
+		http.Error(w, "missing query", http.StatusBadRequest)
+		return
+	}
+
+	result, err := Search(q)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if result == nil {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+
+	json.NewEncoder(w).Encode(result)
+	w.WriteHeader(http.StatusOK)
+}
