@@ -608,15 +608,14 @@ func GetMySubscriptions(w http.ResponseWriter, r *http.Request) {
  * GET /search?q=infinity%20hotel%20munich&format=json&limit=1
  */
 func SearchHandler(w http.ResponseWriter, r *http.Request) {
-	/*
-		_, err := checkAuthorization(r)
 
-		if err != nil {
-			fmt.Println(err)
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-	*/
+	_, err := checkAuthorization(r)
+
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
 
 	q := r.URL.Query().Get("q")
 
