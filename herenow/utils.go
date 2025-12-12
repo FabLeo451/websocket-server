@@ -60,6 +60,7 @@ type Comment struct {
 	Id        int32     `json:"id"`
 	HotspotId string    `json:"hotspotId"`
 	UserId    string    `json:"userId"`
+	UserName  string    `json:"userName"`
 	Message   string    `json:"message"`
 	Created   time.Time `db:"created" json:"created"`
 	Updated   time.Time `db:"updated" json:"updated"`
@@ -465,7 +466,13 @@ func getComments(hotspotId string) ([]Comment, error) {
 
 	if db != nil {
 
-		rows, err := db.Query(`SELECT id, hotspot_id, user_id, message, created, updated FROM hn.COMMENTS WHERE hotspot_id = $1 ORDER BY CREATED DESC`, hotspotId)
+		rows, err := db.Query(`
+			SELECT c.id, hotspot_id, user_id, u.name, message, c.created, c.updated 
+			  FROM hn.COMMENTS c, ekhoes.users u
+			 WHERE hotspot_id = $1
+			   AND c.user_id = u.id
+			 ORDER BY CREATED DESC
+		`, hotspotId)
 
 		if err != nil {
 			log.Println(err.Error())
@@ -476,7 +483,7 @@ func getComments(hotspotId string) ([]Comment, error) {
 		for rows.Next() {
 			var c Comment
 			err := rows.Scan(
-				&c.Id, &c.HotspotId, &c.UserId, &c.Message, &c.Created, &c.Updated,
+				&c.Id, &c.HotspotId, &c.UserId, &c.UserName, &c.Message, &c.Created, &c.Updated,
 			)
 			if err != nil {
 				log.Println("Error reading rows: " + err.Error())
