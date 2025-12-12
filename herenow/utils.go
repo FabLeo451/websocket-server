@@ -56,6 +56,13 @@ type SearchResult struct {
 	DisplayName string `json:"display_name"`
 }
 
+type Comment struct {
+	Id        int32  `json:"id"`
+	HotspotId string `json:"hotspotId"`
+	UserId    string `json:"userId"`
+	Message   string `json:"message"`
+}
+
 func Init() bool {
 	conn := db.DB_ConnectKeepAlive()
 
@@ -318,7 +325,7 @@ func CloneHotspot(id string) error {
 /**
  * Subscribe/unsubscribe
  */
-func Subscribe(hotspotId string, userId string, like bool) error {
+func Subscribe(hotspotId string, userId string, subscribe bool) error {
 
 	db := db.DB_GetConnection()
 
@@ -329,7 +336,7 @@ func Subscribe(hotspotId string, userId string, like bool) error {
 
 	var query string
 
-	if like {
+	if subscribe {
 		query = `
 			INSERT INTO hn.SUBSCRIPTIONS (hotspot_id, user_id)
 			VALUES ($1, $2)
@@ -392,4 +399,55 @@ func Search(query string) (*SearchResult, error) {
 	}
 
 	return &results[0], nil
+}
+
+/**
+ * AddComment
+ */
+func AddComment(comment Comment) error {
+
+	db := db.DB_GetConnection()
+
+	if db == nil {
+		log.Println("Error: database not available")
+		return errors.New("database not available")
+	}
+
+	query := `
+		INSERT INTO hn.COMMENTS (hotspot_id, user_id, message)
+		VALUES ($1, $2, $3)
+		ON CONFLICT DO NOTHING`
+
+	_, err := db.Exec(query, comment.HotspotId, comment.UserId, comment.Message)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+/**
+ * DeleteComment
+ */
+func DeleteComment(commentId string) error {
+
+	db := db.DB_GetConnection()
+
+	if db == nil {
+		log.Println("Error: database not available")
+		return errors.New("database not available")
+	}
+
+	query := `DELETE FROM hn.COMMENTS WHERE ID = $1`
+
+	_, err := db.Exec(query, commentId)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
 }
