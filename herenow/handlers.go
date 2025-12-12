@@ -703,3 +703,23 @@ func DeleteHotspotCommentHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
+
+/**
+ * GET /hotspot/{id}/comments
+ */
+func GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
+
+	hotspotId := chi.URLParam(r, "id")
+
+	comments, err := getComments(hotspotId)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(comments)
+}
