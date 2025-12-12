@@ -641,3 +641,85 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 	w.WriteHeader(http.StatusOK)
 }
+
+/**
+ * POST /hotspot/{id}/comment
+ */
+func PostHotspotCommentHandler(w http.ResponseWriter, r *http.Request) {
+
+	_, err := checkAuthorization(r)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	var comment Comment
+
+	err = json.NewDecoder(r.Body).Decode(&comment)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	comment.HotspotId = chi.URLParam(r, "id")
+
+	err = AddComment(comment)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+}
+
+/**
+ * DELETE /hotspot/{id}/comment/{commentId}
+ */
+func DeleteHotspotCommentHandler(w http.ResponseWriter, r *http.Request) {
+
+	_, err := checkAuthorization(r)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	commentId := chi.URLParam(r, "commentId")
+
+	err = DeleteComment(commentId)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+}
+
+/**
+ * GET /hotspot/{id}/comments
+ */
+func GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
+
+	hotspotId := chi.URLParam(r, "id")
+
+	comments, err := getComments(hotspotId)
+
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(comments)
+}

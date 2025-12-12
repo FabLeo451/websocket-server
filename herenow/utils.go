@@ -56,6 +56,15 @@ type SearchResult struct {
 	DisplayName string `json:"display_name"`
 }
 
+type Comment struct {
+	Id        int32     `json:"id"`
+	HotspotId string    `json:"hotspotId"`
+	UserId    string    `json:"userId"`
+	Message   string    `json:"message"`
+	Created   time.Time `db:"created" json:"created"`
+	Updated   time.Time `db:"updated" json:"updated"`
+}
+
 func Init() bool {
 	conn := db.DB_ConnectKeepAlive()
 
@@ -318,7 +327,7 @@ func CloneHotspot(id string) error {
 /**
  * Subscribe/unsubscribe
  */
-func Subscribe(hotspotId string, userId string, like bool) error {
+func Subscribe(hotspotId string, userId string, subscribe bool) error {
 
 	db := db.DB_GetConnection()
 
@@ -329,7 +338,7 @@ func Subscribe(hotspotId string, userId string, like bool) error {
 
 	var query string
 
-	if like {
+	if subscribe {
 		query = `
 			INSERT INTO hn.SUBSCRIPTIONS (hotspot_id, user_id)
 			VALUES ($1, $2)
@@ -392,4 +401,96 @@ func Search(query string) (*SearchResult, error) {
 	}
 
 	return &results[0], nil
+}
+
+/**
+ * AddComment
+ */
+func AddComment(comment Comment) error {
+
+	db := db.DB_GetConnection()
+
+	if db == nil {
+		log.Println("Error: database not available")
+		return errors.New("database not available")
+	}
+
+	query := `
+		INSERT INTO hn.COMMENTS (hotspot_id, user_id, message)
+		VALUES ($1, $2, $3)
+		ON CONFLICT DO NOTHING`
+
+	_, err := db.Exec(query, comment.HotspotId, comment.UserId, comment.Message)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+/**
+ * DeleteComment
+ */
+func DeleteComment(commentId string) error {
+
+	db := db.DB_GetConnection()
+
+	if db == nil {
+		log.Println("Error: database not available")
+		return errors.New("database not available")
+	}
+
+	query := `DELETE FROM hn.COMMENTS WHERE ID = $1`
+
+	_, err := db.Exec(query, commentId)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+/**
+ * Return comments for a given hotspots
+ */
+func getComments(hotspotId string) ([]Comment, error) {
+
+	var comments []Comment
+
+	db := db.DB_GetConnection()
+
+	if db != nil {
+
+		rows, err := db.Query(`SELECT id, hotspot_id, user_id, message, created, updated FROM hn.COMMENTS WHERE hotspot_id = $1 ORDER BY CREATED DESC`, hotspotId)
+
+		if err != nil {
+			log.Println(err.Error())
+			return nil, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var c Comment
+			err := rows.Scan(
+				&c.Id, &c.HotspotId, &c.UserId, &c.Message, &c.Created, &c.Updated,
+			)
+			if err != nil {
+				log.Println("Error reading rows: " + err.Error())
+				return nil, err
+			}
+			comments = append(comments, c)
+		}
+
+		//fmt.Println(hotspots)
+
+	} else {
+		log.Println("Error: database not available")
+		return nil, errors.New("database not available")
+	}
+
+	return comments, nil
 }
