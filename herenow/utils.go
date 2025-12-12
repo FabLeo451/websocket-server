@@ -407,28 +407,29 @@ func Search(query string) (*SearchResult, error) {
 /**
  * AddComment
  */
-func AddComment(comment Comment) error {
+func AddComment(comment Comment) (*Comment, error) {
 
 	db := db.DB_GetConnection()
 
 	if db == nil {
 		log.Println("Error: database not available")
-		return errors.New("database not available")
+		return nil, errors.New("database not available")
 	}
 
 	query := `
 		INSERT INTO hn.COMMENTS (hotspot_id, user_id, message)
 		VALUES ($1, $2, $3)
-		ON CONFLICT DO NOTHING`
+		ON CONFLICT DO NOTHING
+		RETURNING id, created, updated`
 
-	_, err := db.Exec(query, comment.HotspotId, comment.UserId, comment.Message)
+	err := db.QueryRow(query, comment.HotspotId, comment.UserId, comment.Message).Scan(&comment.Id, &comment.Created, &comment.Updated)
 
 	if err != nil {
 		log.Println(err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &comment, nil
 }
 
 /**

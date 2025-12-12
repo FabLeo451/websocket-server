@@ -666,7 +666,7 @@ func PostHotspotCommentHandler(w http.ResponseWriter, r *http.Request) {
 
 	comment.HotspotId = chi.URLParam(r, "id")
 
-	err = AddComment(comment)
+	insertedComment, err := AddComment(comment)
 
 	if err != nil {
 		log.Println(err)
@@ -675,6 +675,7 @@ func PostHotspotCommentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(insertedComment)
 	w.WriteHeader(http.StatusCreated)
 }
 
