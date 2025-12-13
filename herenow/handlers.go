@@ -165,14 +165,13 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 	whereCond := ""
 	whereVal := ""
 
-	hotspotId := ""
+	//hotspotId := ""
 
 	// Check if asking for a specific hotspot
-	//parts := strings.Split(r.URL.Path, "/")
-	id := chi.URLParam(r, "id")
+	hotspotId := chi.URLParam(r, "id")
 
 	//if len(parts) < 3 {
-	if id == "" { // All user's hotspots
+	if hotspotId == "" { // All user's hotspots
 
 		whereCond = "OWNER = $2"
 		whereVal = userId
@@ -181,7 +180,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 
 		//hotspotId = parts[2]
 		whereCond = "h.id = $2"
-		whereVal = id
+		whereVal = hotspotId
 
 	}
 
