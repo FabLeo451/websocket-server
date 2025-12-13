@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -712,7 +713,27 @@ func GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 
 	hotspotId := chi.URLParam(r, "id")
 
-	comments, err := getComments(hotspotId)
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit64, err := strconv.ParseInt(limitStr, 10, 32)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	offset64, err := strconv.ParseInt(offsetStr, 10, 32)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	limit := int(limit64)
+	offset := int32(offset64)
+
+	comments, err := getComments(hotspotId, limit, offset)
 
 	if err != nil {
 		log.Println(err)

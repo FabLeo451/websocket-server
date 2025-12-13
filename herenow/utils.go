@@ -459,7 +459,7 @@ func DeleteComment(commentId string) error {
 /**
  * Return comments for a given hotspots
  */
-func getComments(hotspotId string) ([]Comment, error) {
+func getComments(hotspotId string, limit int, offset int32) ([]Comment, error) {
 
 	var comments []Comment
 
@@ -467,13 +467,29 @@ func getComments(hotspotId string) ([]Comment, error) {
 
 	if db != nil {
 
-		rows, err := db.Query(`
-			SELECT c.id, hotspot_id, user_id, u.name, message, c.created, c.updated 
-			  FROM hn.COMMENTS c, ekhoes.users u
-			 WHERE hotspot_id = $1
-			   AND c.user_id = u.id
-			 ORDER BY CREATED DESC
-		`, hotspotId)
+		condOffset := "AND c.id < $2"
+
+		if offset < 0 {
+			condOffset = "AND c.id != $2"
+		}
+
+		query := fmt.Sprintf(`
+			SELECT c.id,
+				c.hotspot_id,
+				c.user_id,
+				u.name,
+				c.message,
+				c.created,
+				c.updated
+			FROM hn.comments c
+			JOIN ekhoes.users u ON c.user_id = u.id
+			WHERE c.hotspot_id = $1
+			%s
+			ORDER BY c.id DESC
+			LIMIT $3
+		`, condOffset)
+
+		rows, err := db.Query(query, hotspotId, offset, limit)
 
 		if err != nil {
 			log.Println(err.Error())
