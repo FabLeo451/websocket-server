@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"log"
@@ -15,8 +14,6 @@ import (
 
 	"github.com/gorilla/websocket"
 )
-
-var activeConnections int32
 
 type Message struct {
 	AppId   string
@@ -32,10 +29,6 @@ var upgrader = websocket.Upgrader{
 		// Permetti connessioni da qualsiasi origine
 		return true
 	},
-}
-
-func GetActiveConnectionsCount() int32 {
-	return atomic.LoadInt32(&activeConnections)
 }
 
 func updateLastAccess(userId string) {
@@ -98,12 +91,10 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("%s connected\n", user["name"])
 
-	// Incrementa contatore connessioni
-	atomic.AddInt32(&activeConnections, 1)
+	AddConnection(conn, sessionId)
+
 	defer func() {
-		// Decrementa quando la connessione si chiude
-		atomic.AddInt32(&activeConnections, -1)
-		//fmt.Println("Connessioni attive:", atomic.LoadInt32(&activeConnections))
+		RemoveConnection(sessionId)
 	}()
 
 	for {
