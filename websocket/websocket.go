@@ -134,15 +134,21 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 		switch msg.AppId {
 		case "here-now":
-			jsonStr, err := herenow.MessageHandler(user["id"].(string), msg.Type, msg.Subtype, msg.Text)
-							if err != nil {
-					log.Println(err)
-					break
-				}
+			resultStr, err := herenow.MessageHandler(user["id"].(string), msg.Type, msg.Subtype, msg.Text)
+
+			if err != nil {
+				log.Println(err)
+			} else {
+				var reply Message
+
+				reply = Message{Type: msg.Type, Text: resultStr}
+
+				jsonStr, _ := json.Marshal(reply)
+
 				if err := conn.WriteMessage(websocket.TextMessage, []byte(jsonStr)); err != nil {
 					log.Println("Error writing message:", err)
-					break
 				}
+			}
 
 		default:
 			if msg.Type == "ping" {
