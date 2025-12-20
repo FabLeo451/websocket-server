@@ -1,4 +1,4 @@
-package herenow
+package auth
 
 import (
 	"database/sql"
@@ -61,7 +61,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	addCorsHeaders(w, r)
+	//addCorsHeaders(w, r)
 
 	//reqDump, _ := httputil.DumpRequest(r, true)
 	//fmt.Printf("Request:\n%s\n", string(reqDump))
@@ -225,7 +225,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//sessionId, err := verifyJWT(payload.Token)
-	claims, err := decodeJWT(payload.Token)
+	claims, err := DecodeJWT(payload.Token)
 
 	if err != nil {
 		log.Println(err)

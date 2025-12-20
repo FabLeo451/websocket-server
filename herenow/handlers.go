@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/gorilla/websocket"
 
+	"websocket-server/auth"
 	"websocket-server/db"
 
 	"github.com/go-chi/chi/v5"
@@ -20,27 +20,25 @@ import (
 /**
  * Handler for websocket messages
  */
-func hnMessageHandler(socket *websocket.Conn, userId string, message Message) {
+func MessageHandler(userId string, msgType string, subtype string, text string) (string, error) {
 
 	//log.Printf("Received message of type '%s/%s': %s\n", message.Type, message.Subtype, message.Text)
 
-	var reply Message
-
-	switch message.Type {
+	switch msgType {
 	case "hotspots":
 
 		var hotspots []Hotspot
 
-		switch message.Subtype {
+		switch subtype {
 		case "byPosition":
 
 			var loc Location
 
-			err := json.Unmarshal([]byte(message.Text), &loc)
+			err := json.Unmarshal([]byte(text), &loc)
 
 			if err != nil {
-				log.Println("Error parsing location string:", err)
-				return
+				e := fmt.Sprintf("Error parsing location string: %v\n", err)
+				return "", errors.New(e)
 			}
 
 			hotspots = getNearbyHotspot(loc.Latitude, loc.Longitude)
@@ -49,40 +47,36 @@ func hnMessageHandler(socket *websocket.Conn, userId string, message Message) {
 
 			var boundaries Boundaries
 
-			err := json.Unmarshal([]byte(message.Text), &boundaries)
+			err := json.Unmarshal([]byte(text), &boundaries)
 
 			//fmt.Println(boundaries)
 
 			if err != nil {
-				log.Println("Error parsing boundaries string:", err)
-				return
+				e := fmt.Sprintf("Error parsing boundaries string: %v\n", err)
+				return "", errors.New(e)
 			}
 
 			hotspots = getHotspotsInBoundaries(userId, boundaries)
 
 		default:
-			log.Printf("Unespected subtype: %s\n", message.Subtype)
-			return
+			e := fmt.Sprintf("Unespected subtype: %s\n", subtype)
+			return "", errors.New(e);
 		}
 
 		//fmt.Printf("Hotspots found: %d\n", len(hotspots))
 
 		jsonBytes, err := json.Marshal(hotspots)
 		if err != nil {
-			log.Println("Error converting in JSON:", err)
-			return
+			return "", err
 		}
 
 		jsonString := string(jsonBytes)
 
-		reply = Message{Type: message.Type, Text: jsonString}
+		return jsonString, nil
 
-		jsonStr, _ := json.Marshal(reply)
-
-		if err := socket.WriteMessage(websocket.TextMessage, []byte(jsonStr)); err != nil {
-			log.Println("Error writing message:", err)
-			break
-		}
+	default:
+			e := fmt.Sprintf("Unespected type: %s\n", subtype)
+			return "", errors.New(e);
 	}
 }
 
@@ -110,7 +104,7 @@ func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
 		return nil, errors.New("missing Authorization header")
 	}
 
-	claims, err := decodeJWT(token)
+	claims, err := auth.DecodeJWT(token)
 
 	if err != nil {
 		return nil, errors.New("invalid token")
@@ -122,28 +116,6 @@ func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
 
 	return claims, nil
 }
-
-/*
-func HotspotHandler(w http.ResponseWriter, r *http.Request) {
-
-	log.Printf("%s %s\n", r.Method, r.URL.Path)
-
-	switch r.Method {
-	case http.MethodOptions:
-		optionsPreflight(w, r)
-	case http.MethodPost:
-		PostHotspot(w, r)
-	case http.MethodPut:
-		putHotspot(w, r)
-	case http.MethodGet:
-		GetHotspot(w, r)
-	case http.MethodDelete:
-		deleteHotspot(w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-*/
 
 /**
  * get /hotspot/[id]
