@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"websocket-server/auth"
 	"websocket-server/herenow"
+	"websocket-server/websocket"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -56,18 +58,8 @@ type Host struct {
 
 func getMetrics(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-	w.Header().Set("Content-Type", "application/json")
-
 	metrics := map[string]interface{}{
-		"activeConnections": herenow.GetActiveConnectionsCount(),
+		"count": websocket.GetConnectionsCount(),
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -117,11 +109,11 @@ func Start(args []string) int {
 	// Static routes
 	r.Get("/", getRoot)
 	r.Get("/metrics", getMetrics)
-	r.Post("/login", herenow.Login)
-	r.Post("/logout", herenow.Logout)
+	r.Post("/login", auth.Login)
+	r.Post("/logout", auth.Logout)
 
 	// Alternative: method prefix syntax (chi supports it too)
-	r.Method("GET", "/connect", http.HandlerFunc(herenow.HandleConnection))
+	r.Method("GET", "/connect", http.HandlerFunc(websocket.HandleConnection))
 
 	// /hotspot routes
 	r.Route("/hotspot", func(r chi.Router) {

@@ -1,4 +1,4 @@
-package herenow
+package auth
 
 import (
 	"fmt"
@@ -44,7 +44,7 @@ func generateJWT(sessionId, userId, email, name string, ttl *time.Time) (string,
 	return tokenString, nil
 }
 
-func decodeJWT(tokenString string) (jwt.MapClaims, error) {
+func DecodeJWT(tokenString string) (jwt.MapClaims, error) {
 
 	var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
@@ -67,9 +67,9 @@ func decodeJWT(tokenString string) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-func verifyJWT(tokenString string) (string, error) {
+func VerifyJWT(tokenString string) (string, error) {
 
-	claims, err := decodeJWT(tokenString)
+	claims, err := DecodeJWT(tokenString)
 
 	if err != nil {
 		return "", err

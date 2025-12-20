@@ -1,20 +1,19 @@
-package herenow
+package websocket
 
 import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"log"
 
+	"websocket-server/auth"
 	"websocket-server/db"
+	"websocket-server/herenow"
 
 	"github.com/gorilla/websocket"
 )
-
-var activeConnections int32
 
 type Message struct {
 	AppId   string
@@ -30,10 +29,6 @@ var upgrader = websocket.Upgrader{
 		// Permetti connessioni da qualsiasi origine
 		return true
 	},
-}
-
-func GetActiveConnectionsCount() int32 {
-	return atomic.LoadInt32(&activeConnections)
 }
 
 func updateLastAccess(userId string) {
@@ -70,7 +65,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionId, err := verifyJWT(token)
+	sessionId, err := auth.VerifyJWT(token)
 
 	if err != nil {
 		log.Println("Can't decode token:", err)
@@ -84,7 +79,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	sess := SetSessionActive(db.RedisGetConnection(), sessionId, true)
+	sess := auth.SetSessionActive(db.RedisGetConnection(), sessionId, true)
 
 	if sess == nil {
 		log.Printf("Session not found in websocket connection handler: %s\n", sessionId)
@@ -96,12 +91,10 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("%s connected\n", user["name"])
 
-	// Incrementa contatore connessioni
-	atomic.AddInt32(&activeConnections, 1)
+	AddConnection(conn, sessionId)
+
 	defer func() {
-		// Decrementa quando la connessione si chiude
-		atomic.AddInt32(&activeConnections, -1)
-		//fmt.Println("Connessioni attive:", atomic.LoadInt32(&activeConnections))
+		RemoveConnection(sessionId)
 	}()
 
 	for {
@@ -132,7 +125,22 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 		switch msg.AppId {
 		case "here-now":
-			hnMessageHandler(conn, user["id"].(string), msg)
+			resultStr, err := herenow.MessageHandler(user["id"].(string), msg.Type, msg.Subtype, msg.Text)
+
+			if err != nil {
+				log.Println(err)
+			} else {
+				var reply Message
+
+				reply = Message{Type: msg.Type, Text: resultStr}
+
+				jsonStr, _ := json.Marshal(reply)
+
+				if err := conn.WriteMessage(websocket.TextMessage, []byte(jsonStr)); err != nil {
+					log.Println("Error writing message:", err)
+				}
+			}
+
 		default:
 			if msg.Type == "ping" {
 				now := time.Now().UTC()
@@ -155,6 +163,6 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("%s disconnected\n", user["name"])
 
-	SetSessionActive(db.RedisGetConnection(), sessionId, false)
+	auth.SetSessionActive(db.RedisGetConnection(), sessionId, false)
 	updateLastAccess(user["id"].(string))
 }
