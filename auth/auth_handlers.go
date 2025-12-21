@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"websocket-server/db"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Credentials struct {
@@ -47,6 +49,29 @@ func optionsPreflight(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func CheckAuthorization(r *http.Request) (jwt.MapClaims, error) {
+
+	token := r.Header.Get("Authorization")
+
+	//fmt.Printf("[createHotSpot] Authorization: %s\n", token)
+
+	if token == "" {
+		return nil, errors.New("missing Authorization header")
+	}
+
+	claims, err := DecodeJWT(token)
+
+	if err != nil {
+		return nil, errors.New("invalid token")
+	}
+
+	if claims["userId"].(string) == "" {
+		return nil, errors.New("missing user id in token")
+	}
+
+	return claims, nil
 }
 
 /**
@@ -140,7 +165,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 		ip := r.RemoteAddr
 		status := "idle"
-		updated := time.Now().Format(time.RFC3339)
+		updated := time.Now() //.Format(time.RFC3339)
 
 		sess := Session{
 			User:       user,
@@ -248,4 +273,28 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	if sessionId != "" {
 		DeleteSession(db.RedisGetConnection(), sessionId)
 	}
+}
+
+/**
+ * GET /sessions
+ */
+func GetSessionsHandler(w http.ResponseWriter, r *http.Request) {
+
+	_, err := CheckAuthorization(r)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	sessions, err := GetSessions(db.RedisGetConnection(), "*")
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(sessions)
+	w.WriteHeader(http.StatusOK)
 }

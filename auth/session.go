@@ -22,15 +22,15 @@ type User struct {
 }
 
 type Session struct {
-	User       User   `json:"user"`
-	Agent      string `json:"agent"`
-	Platform   string `json:"platform"`
-	Model      string `json:"model"`
-	DeviceName string `json:"deviceName"`
-	DeviceType string `json:"deviceType"`
-	Ip         string `json:"ip"`
-	Status     string `json:"status"`
-	Updated    string `json:"updated"`
+	User       User      `json:"user"`
+	Agent      string    `json:"agent"`
+	Platform   string    `json:"platform"`
+	Model      string    `json:"model"`
+	DeviceName string    `json:"deviceName"`
+	DeviceType string    `json:"deviceType"`
+	Ip         string    `json:"ip"`
+	Status     string    `json:"status"`
+	Updated    time.Time `json:"updated"`
 }
 
 func CreateSession(rdb *redis.Client, session Session) (string, error) {
@@ -122,4 +122,34 @@ func SetSessionActive(rdb *redis.Client, key string, active bool) map[string]int
 	}
 
 	return data
+}
+
+func GetSessions(rdb *redis.Client, pattern string) ([]Session, error) {
+	ctx := context.Background()
+
+	var sessions []Session
+
+	// Recupera tutte le chiavi corrispondenti al pattern
+	keys, err := rdb.Keys(ctx, pattern).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range keys {
+		val, err := rdb.Get(ctx, key).Result()
+		if err != nil {
+			log.Printf("Errore nel leggere chiave %s: %v", key, err)
+			continue
+		}
+
+		var sess Session
+		if err := json.Unmarshal([]byte(val), &sess); err != nil {
+			log.Printf("Errore nel parsing JSON della chiave %s: %v", key, err)
+			continue
+		}
+
+		sessions = append(sessions, sess)
+	}
+
+	return sessions, nil
 }
