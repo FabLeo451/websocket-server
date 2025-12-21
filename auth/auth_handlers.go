@@ -69,6 +69,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	id, name := "", ""
 
 	isGuest := r.URL.Query().Has("guest")
+	nosession := r.URL.Query().Has("nosession") // Used by cli
 
 	var credentials Credentials
 
@@ -127,34 +128,39 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	// User authenticated or guest
 
+	sessionId := ""
+
 	user := User{
 		Id:    id,
 		Name:  name,
 		Email: credentials.Email,
 	}
 
-	ip := r.RemoteAddr
-	status := "idle"
-	updated := time.Now().Format(time.RFC3339)
+	if !nosession {
 
-	sess := Session{
-		User:       user,
-		Agent:      credentials.Agent,
-		Platform:   credentials.Platform,
-		Model:      credentials.Model,
-		DeviceName: credentials.DeviceName,
-		DeviceType: credentials.DeviceType,
-		Ip:         ip,
-		Status:     status,
-		Updated:    updated,
-	}
+		ip := r.RemoteAddr
+		status := "idle"
+		updated := time.Now().Format(time.RFC3339)
 
-	sessionId, err := CreateSession(db.RedisGetConnection(), sess)
+		sess := Session{
+			User:       user,
+			Agent:      credentials.Agent,
+			Platform:   credentials.Platform,
+			Model:      credentials.Model,
+			DeviceName: credentials.DeviceName,
+			DeviceType: credentials.DeviceType,
+			Ip:         ip,
+			Status:     status,
+			Updated:    updated,
+		}
 
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Error creating session", http.StatusInternalServerError)
-		return
+		sessionId, err = CreateSession(db.RedisGetConnection(), sess)
+
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Error creating session", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	var expiresAt *time.Time = nil
@@ -179,9 +185,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	//fmt.Println(token)
 
 	if isGuest {
-		log.Printf("Guest %s entered\n", sess.User.Name)
+		log.Printf("Guest %s entered\n", user.Name)
 	} else {
-		log.Printf("User %s successfully authenticated\n", sess.User.Name)
+		log.Printf("User %s successfully authenticated\n", user.Name)
 	}
 
 }
