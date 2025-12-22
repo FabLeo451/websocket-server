@@ -22,6 +22,7 @@ type User struct {
 }
 
 type Session struct {
+	Id         string    `json:"id"`
 	User       User      `json:"user"`
 	Agent      string    `json:"agent"`
 	Platform   string    `json:"platform"`
@@ -147,6 +148,8 @@ func GetSessions(rdb *redis.Client, pattern string) ([]Session, error) {
 			log.Printf("Errore nel parsing JSON della chiave %s: %v", key, err)
 			continue
 		}
+
+		sess.Id = key
 
 		sessions = append(sessions, sess)
 	}
