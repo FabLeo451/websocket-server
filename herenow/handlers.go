@@ -123,17 +123,7 @@ func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
  */
 func GetHotspot(w http.ResponseWriter, r *http.Request) {
 
-	addCorsHeaders(w, r)
-
-	claims, err := checkAuthorization(r)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	userId := claims["userId"].(string)
-
+	userId := ""
 	whereCond := ""
 	whereVal := ""
 
@@ -144,6 +134,14 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 
 	//if len(parts) < 3 {
 	if hotspotId == "" { // All user's hotspots
+		claims, err := checkAuthorization(r)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		userId = claims["userId"].(string)
 
 		whereCond = "OWNER = $2"
 		whereVal = userId
