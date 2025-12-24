@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
-
 	"websocket-server/auth"
 	"websocket-server/db"
 
@@ -60,7 +58,7 @@ func MessageHandler(userId string, msgType string, subtype string, text string) 
 
 		default:
 			e := fmt.Sprintf("Unespected subtype: %s\n", subtype)
-			return "", errors.New(e);
+			return "", errors.New(e)
 		}
 
 		//fmt.Printf("Hotspots found: %d\n", len(hotspots))
@@ -75,8 +73,8 @@ func MessageHandler(userId string, msgType string, subtype string, text string) 
 		return jsonString, nil
 
 	default:
-			e := fmt.Sprintf("Unespected type: %s\n", subtype)
-			return "", errors.New(e);
+		e := fmt.Sprintf("Unespected type: %s\n", subtype)
+		return "", errors.New(e)
 	}
 }
 
@@ -94,6 +92,7 @@ func addCorsHeaders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 }
 
+/*
 func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
 
 	token := r.Header.Get("Authorization")
@@ -116,7 +115,7 @@ func checkAuthorization(r *http.Request) (jwt.MapClaims, error) {
 
 	return claims, nil
 }
-
+*/
 /**
  * get /hotspot/[id]
  * If id is missing, return all hotspots owned by logged user
@@ -134,7 +133,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 
 	//if len(parts) < 3 {
 	if hotspotId == "" { // All user's hotspots
-		claims, err := checkAuthorization(r)
+		claims, err := auth.CheckAuthorization(r)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -252,7 +251,7 @@ func PostHotspot(w http.ResponseWriter, r *http.Request) {
 
 	addCorsHeaders(w, r)
 
-	claims, err := checkAuthorization(r)
+	claims, err := auth.CheckAuthorization(r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -295,7 +294,7 @@ func PutHotspot(w http.ResponseWriter, r *http.Request) {
 
 	addCorsHeaders(w, r)
 
-	_, err := checkAuthorization(r)
+	_, err := auth.CheckAuthorization(r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -341,7 +340,7 @@ func DeleteHotspot(w http.ResponseWriter, r *http.Request) {
 
 	addCorsHeaders(w, r)
 
-	claims, err := checkAuthorization(r)
+	claims, err := auth.CheckAuthorization(r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -385,7 +384,7 @@ func LikeHotspot(w http.ResponseWriter, r *http.Request) {
 
 	addCorsHeaders(w, r)
 
-	claims, err := checkAuthorization(r)
+	claims, err := auth.CheckAuthorization(r)
 
 	if err != nil {
 		fmt.Println(err)
@@ -419,7 +418,7 @@ func CloneHotspotHandler(w http.ResponseWriter, r *http.Request) {
 
 	addCorsHeaders(w, r)
 
-	_, err := checkAuthorization(r)
+	_, err := auth.CheckAuthorization(r)
 
 	if err != nil {
 		fmt.Println(err)
@@ -494,7 +493,7 @@ func SubscribeUnsubscribeHandler(w http.ResponseWriter, r *http.Request) {
 
 	//addCorsHeaders(w, r)
 
-	claims, err := checkAuthorization(r)
+	claims, err := auth.CheckAuthorization(r)
 
 	if err != nil {
 		log.Println(err)
@@ -528,7 +527,7 @@ func GetMySubscriptions(w http.ResponseWriter, r *http.Request) {
 
 	//addCorsHeaders(w, r)
 
-	claims, err := checkAuthorization(r)
+	claims, err := auth.CheckAuthorization(r)
 
 	if err != nil {
 		fmt.Println(err)
@@ -579,7 +578,7 @@ func GetMySubscriptions(w http.ResponseWriter, r *http.Request) {
  */
 func SearchHandler(w http.ResponseWriter, r *http.Request) {
 
-	_, err := checkAuthorization(r)
+	_, err := auth.CheckAuthorization(r)
 
 	if err != nil {
 		fmt.Println(err)
@@ -617,7 +616,7 @@ func SearchHandler(w http.ResponseWriter, r *http.Request) {
  */
 func PostHotspotCommentHandler(w http.ResponseWriter, r *http.Request) {
 
-	_, err := checkAuthorization(r)
+	_, err := auth.CheckAuthorization(r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -654,7 +653,7 @@ func PostHotspotCommentHandler(w http.ResponseWriter, r *http.Request) {
  */
 func DeleteHotspotCommentHandler(w http.ResponseWriter, r *http.Request) {
 
-	_, err := checkAuthorization(r)
+	_, err := auth.CheckAuthorization(r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -684,11 +683,11 @@ func GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 
 	limitStr := "1000000"
 	offsetStr := "-1"
-	
+
 	if r.URL.Query().Has("limit") {
 		limitStr = r.URL.Query().Get("limit")
 	}
-	
+
 	if r.URL.Query().Has("offset") {
 		offsetStr = r.URL.Query().Get("offset")
 	}

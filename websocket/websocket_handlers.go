@@ -172,14 +172,12 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
  * GET /connections
  */
 func GetConnectionsHandler(w http.ResponseWriter, r *http.Request) {
-	/*
-		_, err := checkAuthorization(r)
+	_, err := auth.CheckAuthorization(r)
 
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-	*/
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
 
 	connections := GetConnections()
 	fmt.Println(connections)
