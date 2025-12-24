@@ -682,8 +682,16 @@ func GetCommentsHandler(w http.ResponseWriter, r *http.Request) {
 
 	hotspotId := chi.URLParam(r, "id")
 
-	limitStr := r.URL.Query().Get("limit")
-	offsetStr := r.URL.Query().Get("offset")
+	limitStr := "1000000"
+	offsetStr := "-1"
+	
+	if r.URL.Query().Has("limit") {
+		limitStr = r.URL.Query().Get("limit")
+	}
+	
+	if r.URL.Query().Has("offset") {
+		offsetStr = r.URL.Query().Get("offset")
+	}
 
 	limit64, err := strconv.ParseInt(limitStr, 10, 32)
 	if err != nil {
