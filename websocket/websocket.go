@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -91,7 +92,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("%s connected\n", user["name"])
 
-	AddConnection(conn, sessionId)
+	AddConnection(conn, sessionId, user)
 
 	defer func() {
 		RemoveConnection(sessionId)
@@ -165,4 +166,25 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	auth.SetSessionActive(db.RedisGetConnection(), sessionId, false)
 	updateLastAccess(user["id"].(string))
+}
+
+/**
+ * GET /connections
+ */
+func GetConnectionsHandler(w http.ResponseWriter, r *http.Request) {
+	/*
+		_, err := checkAuthorization(r)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+	*/
+
+	connections := GetConnections()
+	fmt.Println(connections)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(connections)
+	w.WriteHeader(http.StatusOK)
 }

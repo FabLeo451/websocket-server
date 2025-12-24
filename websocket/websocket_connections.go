@@ -1,15 +1,17 @@
 package websocket
 
 import (
-	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 type WebsocketConnection struct {
-	conn      *websocket.Conn
-	sessionId string
+	Conn      *websocket.Conn `json:"conn"`
+	SessionId string          `json:"sessionId"`
+	Email     string          `json:"email"`
+	Created   time.Time       `json:"created"`
 }
 
 var (
@@ -24,7 +26,7 @@ func GetConnections() []WebsocketConnection {
 	// copy to avoid extern updates
 	result := make([]WebsocketConnection, len(connections))
 	copy(result, connections)
-	fmt.Println(result)
+	//fmt.Println(result)
 	return result
 }
 
@@ -34,16 +36,18 @@ func GetConnectionsCount() int32 {
 	return int32(len(connections))
 }
 
-func AddConnection(conn *websocket.Conn, sessionId string) {
+func AddConnection(conn *websocket.Conn, sessionId string, userData map[string]interface{}) {
 	mu.Lock()
 	defer mu.Unlock()
 
 	connections = append(connections, WebsocketConnection{
-		conn:      conn,
-		sessionId: sessionId,
+		Conn:      conn,
+		SessionId: sessionId,
+		Email:     userData["email"].(string),
+		Created:   time.Now(),
 	})
 
-	fmt.Println(connections)
+	//fmt.Println(connections)
 }
 
 func RemoveConnection(sessionId string) {
@@ -51,7 +55,7 @@ func RemoveConnection(sessionId string) {
 	defer mu.Unlock()
 
 	for i, c := range connections {
-		if c.sessionId == sessionId {
+		if c.SessionId == sessionId {
 			connections = append(connections[:i], connections[i+1:]...)
 			return
 		}

@@ -115,6 +115,7 @@ func Start(args []string) int {
 
 	// Alternative: method prefix syntax (chi supports it too)
 	r.Method("GET", "/connect", http.HandlerFunc(websocket.HandleConnection))
+	r.Get("/connections", websocket.GetConnectionsHandler)
 
 	// /hotspot routes
 	r.Route("/hotspot", func(r chi.Router) {

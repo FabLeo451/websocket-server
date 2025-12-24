@@ -26,31 +26,32 @@ type Credentials struct {
 	DeviceType string `json:"deviceType"`
 }
 
+/*
 func optionsPreflight(w http.ResponseWriter, r *http.Request) {
 
-	//reqDump, _ := httputil.DumpRequest(r, true)
-	//fmt.Printf("Request:\n%s\n", string(reqDump))
+		//reqDump, _ := httputil.DumpRequest(r, true)
+		//fmt.Printf("Request:\n%s\n", string(reqDump))
 
-	origin := r.Header.Get("Origin")
-	if origin != "" {
-		// Imposta l'origine della richiesta come origine consentita
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Vary", "Origin") // Importante per caching corretto
+		origin := r.Header.Get("Origin")
+		if origin != "" {
+			// Imposta l'origine della richiesta come origine consentita
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin") // Importante per caching corretto
+		}
+
+		//w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		// Se è una richiesta OPTIONS, rispondi subito
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
-
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-	// Se è una richiesta OPTIONS, rispondi subito
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
+*/
 func CheckAuthorization(r *http.Request) (jwt.MapClaims, error) {
 
 	token := r.Header.Get("Authorization")
@@ -79,13 +80,13 @@ func CheckAuthorization(r *http.Request) (jwt.MapClaims, error) {
  * -H "x-user-agent: Radar/1.0.0" -H "x-platform: Android" -d '{ email: "admin@hal9k.net", password: "admin" }'
  */
 func Login(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method == http.MethodOptions {
-		fmt.Println("OPTIONS /login")
-		optionsPreflight(w, r)
-		return
-	}
-
+	/*
+		if r.Method == http.MethodOptions {
+			fmt.Println("OPTIONS /login")
+			optionsPreflight(w, r)
+			return
+		}
+	*/
 	//addCorsHeaders(w, r)
 
 	//reqDump, _ := httputil.DumpRequest(r, true)
@@ -222,12 +223,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
  * -d '{ "token": "12345" }'
  */
 func Logout(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method == http.MethodOptions {
-		optionsPreflight(w, r)
-		return
-	}
-
+	/*
+		if r.Method == http.MethodOptions {
+			optionsPreflight(w, r)
+			return
+		}
+	*/
 	origin := r.Header.Get("Origin")
 
 	if origin != "" {
