@@ -2,7 +2,6 @@ package websocket
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -180,7 +179,6 @@ func GetConnectionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	connections := GetConnections()
-	fmt.Println(connections)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(connections)
