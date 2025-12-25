@@ -132,7 +132,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 			} else {
 				var reply Message
 
-				reply = Message{Type: msg.Type, Text: resultStr}
+				reply = Message{AppId: msg.AppId, Type: msg.Type, Subtype: msg.Subtype, Text: resultStr}
 
 				jsonStr, _ := json.Marshal(reply)
 

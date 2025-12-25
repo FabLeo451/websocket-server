@@ -23,7 +23,7 @@ func MessageHandler(userId string, msgType string, subtype string, text string) 
 	//log.Printf("Received message of type '%s/%s': %s\n", message.Type, message.Subtype, message.Text)
 
 	switch msgType {
-	case "hotspots":
+	case "map":
 
 		var hotspots []Hotspot
 
@@ -41,7 +41,7 @@ func MessageHandler(userId string, msgType string, subtype string, text string) 
 
 			hotspots = getNearbyHotspot(loc.Latitude, loc.Longitude)
 
-		case "byBoundaries":
+		case "getHotspotsByBoundaries":
 
 			var boundaries Boundaries
 
