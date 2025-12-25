@@ -70,6 +70,41 @@ func DeleteSession(rdb *redis.Client, sessionId string) error {
 	return nil
 }
 
+func DeleteSessionsByPattern(rdb *redis.Client, pattern string) error {
+	var cursor uint64
+	ctx := context.Background()
+
+	for {
+		keys, newCursor, err := rdb.Scan(ctx, cursor, pattern, 100).Result()
+		if err != nil {
+			return fmt.Errorf("scan error: %w", err)
+		}
+
+		if len(keys) > 0 {
+			if err := rdb.Del(ctx, keys...).Err(); err != nil {
+				return fmt.Errorf("delete error: %w", err)
+			}
+		}
+
+		cursor = newCursor
+		if cursor == 0 {
+			break
+		}
+	}
+
+	return nil
+}
+
+func DeleteAllSessions(rdb *redis.Client) error {
+
+	err := DeleteSessionsByPattern(rdb, "*")
+	if err != nil {
+		return fmt.Errorf("unable to remove key: %w", err)
+	}
+
+	return nil
+}
+
 func SetSessionActive(rdb *redis.Client, key string, active bool) map[string]interface{} {
 
 	//rdb := RedisGetConnection()

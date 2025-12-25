@@ -328,3 +328,29 @@ func DeleteSessionHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
+
+/**
+ * DELETE /sessions
+ */
+func DeleteAllSessionsHandler(w http.ResponseWriter, r *http.Request) {
+
+	_, err := CheckAuthorization(r)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	err = DeleteAllSessions(db.RedisGetConnection())
+
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("All sessions deleted")
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+}
