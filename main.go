@@ -111,7 +111,9 @@ func Start(args []string) int {
 	r.Get("/metrics", getMetrics)
 	r.Post("/login", auth.Login)
 	r.Post("/logout", auth.Logout)
+
 	r.Get("/sessions", auth.GetSessionsHandler)
+	r.Delete("/session/{id}", auth.DeleteSessionHandler)
 
 	// Alternative: method prefix syntax (chi supports it too)
 	r.Method("GET", "/connect", http.HandlerFunc(websocket.HandleConnection))

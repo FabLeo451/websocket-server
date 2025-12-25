@@ -12,6 +12,7 @@ import (
 
 	"websocket-server/db"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -297,5 +298,33 @@ func GetSessionsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(sessions)
+	w.WriteHeader(http.StatusOK)
+}
+
+/**
+ * DELETE /session/[id]
+ */
+func DeleteSessionHandler(w http.ResponseWriter, r *http.Request) {
+
+	_, err := CheckAuthorization(r)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	sessionId := chi.URLParam(r, "id")
+
+	err = DeleteSession(db.RedisGetConnection(), sessionId)
+
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Session deleted: %s\n", sessionId)
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
