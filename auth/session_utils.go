@@ -113,7 +113,7 @@ func SetSessionActive(rdb *redis.Client, key string, active bool) map[string]int
 
 	val, err := rdb.Get(ctx, key).Result()
 	if err == redis.Nil {
-		fmt.Println("Key not found")
+		//log.Printf("the key to be deleted was not found: %s\n", key)
 		return nil
 	} else if err != nil {
 		log.Fatalf("Error in GET: %v", err)

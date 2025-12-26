@@ -245,12 +245,16 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	sessionId, ok := claims["sessionId"].(string)
 
 	if !ok {
 		log.Println("claim 'sessionId' not found or not a string")
+		http.Error(w, "claim 'sessionId' not found or not a string", http.StatusInternalServerError)
+		return
 	}
 
 	log.Printf("Deleting session: %s\n", sessionId)
@@ -258,6 +262,8 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	if sessionId != "" {
 		DeleteSession(db.RedisGetConnection(), sessionId)
 	}
+	
+	w.WriteHeader(http.StatusOK)
 }
 
 /**
