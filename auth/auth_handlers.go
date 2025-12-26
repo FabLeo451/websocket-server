@@ -224,23 +224,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
  * -d '{ "token": "12345" }'
  */
 func Logout(w http.ResponseWriter, r *http.Request) {
-	/*
-		if r.Method == http.MethodOptions {
-			optionsPreflight(w, r)
-			return
-		}
-	*/
-	origin := r.Header.Get("Origin")
-
-	if origin != "" {
-		// Imposta l'origine della richiesta come origine consentita
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Vary", "Origin") // Importante per caching corretto
-	}
-
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 	type Payload struct {
 		Token string `json:"token"`

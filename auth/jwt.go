@@ -55,13 +55,13 @@ func DecodeJWT(tokenString string) (jwt.MapClaims, error) {
 		return jwtSecret, nil
 	})
 
+	if err != nil || !token.Valid {
+		return nil, fmt.Errorf("invalid token: %w", err)
+	}
+
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return nil, fmt.Errorf("invalid claims")
-	}
-
-	if err != nil || !token.Valid {
-		return claims, fmt.Errorf("invalid token: %w", err)
 	}
 
 	return claims, nil
