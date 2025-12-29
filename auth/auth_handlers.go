@@ -200,9 +200,16 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Error generating token", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"token":"%s", "name":"%s", "id":"%s" }`, token, name, id)))
+	w.Write([]byte(fmt.Sprintf(`{"token":"%s", "name":"%s", "id":"%s", "hostname":"%s" }`, token, name, id, hostname)))
 
 	//fmt.Println(token)
 
