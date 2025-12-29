@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"websocket-server/db"
@@ -27,32 +28,6 @@ type Credentials struct {
 	DeviceType string `json:"deviceType"`
 }
 
-/*
-func optionsPreflight(w http.ResponseWriter, r *http.Request) {
-
-		//reqDump, _ := httputil.DumpRequest(r, true)
-		//fmt.Printf("Request:\n%s\n", string(reqDump))
-
-		origin := r.Header.Get("Origin")
-		if origin != "" {
-			// Imposta l'origine della richiesta come origine consentita
-			w.Header().Set("Access-Control-Allow-Origin", origin)
-			w.Header().Set("Vary", "Origin") // Importante per caching corretto
-		}
-
-		//w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		// Se è una richiesta OPTIONS, rispondi subito
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		w.WriteHeader(http.StatusNoContent)
-	}
-*/
 func CheckAuthorization(r *http.Request) (jwt.MapClaims, error) {
 
 	token := r.Header.Get("Authorization")
@@ -76,24 +51,27 @@ func CheckAuthorization(r *http.Request) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
+func contains(csv string, target string) bool {
+	items := strings.Split(csv, ",")
+	for _, item := range items {
+		if strings.TrimSpace(item) == target {
+			return true
+		}
+	}
+	return false
+}
+
+func HasPrivilege(privileges string, target string) bool {
+	return contains(privileges, target) || contains(privileges, "ek_admin")
+}
+
 /**
  * POST /login
  * -H "x-user-agent: Radar/1.0.0" -H "x-platform: Android" -d '{ email: "admin@hal9k.net", password: "admin" }'
  */
 func Login(w http.ResponseWriter, r *http.Request) {
-	/*
-		if r.Method == http.MethodOptions {
-			fmt.Println("OPTIONS /login")
-			optionsPreflight(w, r)
-			return
-		}
-	*/
-	//addCorsHeaders(w, r)
 
-	//reqDump, _ := httputil.DumpRequest(r, true)
-	//fmt.Printf("Request:\n%s\n", string(reqDump))
-
-	id, name := "", ""
+	id, name, roles, privileges := "", "", "", ""
 
 	isGuest := r.URL.Query().Has("guest")
 	nosession := r.URL.Query().Has("nosession") // Used by cli
@@ -118,7 +96,24 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 		if db != nil {
 
-			query := "SELECT ID, NAME, (PASSWORD = crypt($1, PASSWORD)) AS password_match FROM " + os.Getenv("DB_SCHEMA") + ".users WHERE LOWER(EMAIL) = LOWER($2) AND status = 'enabled'"
+			//query := "SELECT ID, NAME, (PASSWORD = crypt($1, PASSWORD)) AS password_match FROM " + os.Getenv("DB_SCHEMA") + ".users WHERE LOWER(EMAIL) = LOWER($2) AND status = 'enabled'"
+			query := `SELECT 
+						u.id,
+						u.name,
+						(u.password = crypt($1, u.password)) AS password_match,
+						STRING_AGG(DISTINCT ur.roles, ', ') AS roles,
+						STRING_AGG(DISTINCT rp.id_privilege, ', ') AS privileges
+					FROM 
+						` + os.Getenv("DB_SCHEMA") + `.users u
+					JOIN 
+						` + os.Getenv("DB_SCHEMA") + `.user_roles ur ON u.id = ur.user_id
+					LEFT JOIN 
+						` + os.Getenv("DB_SCHEMA") + `.roles_privileges rp ON ur.roles = rp.id_role
+					WHERE 
+						LOWER(u.email) = LOWER($2)
+						AND u.status = 'enabled'
+					GROUP BY 
+						u.id`
 
 			rows, err := db.Query(query, credentials.Password, credentials.Email)
 
@@ -133,7 +128,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			password_match := false
 
 			for rows.Next() {
-				_ = rows.Scan(&id, &name, &password_match)
+				_ = rows.Scan(&id, &name, &password_match, &roles, &privileges)
 
 				if !password_match {
 					http.Error(w, "Wrong password", http.StatusUnauthorized)
@@ -197,7 +192,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		expiresAt = &t
 	}
 
-	token, err := generateJWT(sessionId, id, credentials.Email, name, expiresAt)
+	token, err := generateJWT(sessionId, id, credentials.Email, name, roles, privileges, expiresAt)
 
 	if err != nil {
 		log.Println(err)
@@ -262,7 +257,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	if sessionId != "" {
 		DeleteSession(db.RedisGetConnection(), sessionId)
 	}
-	
+
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -271,10 +266,15 @@ func Logout(w http.ResponseWriter, r *http.Request) {
  */
 func GetSessionsHandler(w http.ResponseWriter, r *http.Request) {
 
-	_, err := CheckAuthorization(r)
+	claims, err := CheckAuthorization(r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	if HasPrivilege(claims["privileges"].(string), "ek_read_session") == false {
+		http.Error(w, "missing required privileges", http.StatusUnauthorized)
 		return
 	}
 
@@ -295,10 +295,15 @@ func GetSessionsHandler(w http.ResponseWriter, r *http.Request) {
  */
 func DeleteSessionHandler(w http.ResponseWriter, r *http.Request) {
 
-	_, err := CheckAuthorization(r)
+	claims, err := CheckAuthorization(r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	if HasPrivilege(claims["privileges"].(string), "ek_delete_session") == false {
+		http.Error(w, "missing required privileges", http.StatusUnauthorized)
 		return
 	}
 

@@ -9,20 +9,24 @@ import (
 )
 
 type CustomClaims struct {
-	SessionId string `json:"sessionId"`
-	UserId    string `json:"userId"`
-	Email     string `json:"email"`
-	Name      string `json:"name"`
+	SessionId  string `json:"sessionId"`
+	UserId     string `json:"userId"`
+	Email      string `json:"email"`
+	Name       string `json:"name"`
+	Roles      string `json:"roles"`
+	Privileges string `json:"privileges"`
 	jwt.RegisteredClaims
 }
 
-func generateJWT(sessionId, userId, email, name string, ttl *time.Time) (string, error) {
+func generateJWT(sessionId, userId, email, name string, roles string, privileges string, ttl *time.Time) (string, error) {
 
 	claims := CustomClaims{
-		SessionId: sessionId,
-		UserId:    userId,
-		Email:     email,
-		Name:      name,
+		SessionId:  sessionId,
+		UserId:     userId,
+		Email:      email,
+		Name:       name,
+		Roles:      roles,
+		Privileges: privileges,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt: jwt.NewNumericDate(time.Now()),
 			Issuer:   "websocket-server",

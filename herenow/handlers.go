@@ -47,7 +47,7 @@ func MessageHandler(userId string, msgType string, subtype string, payload strin
 
 			err := json.Unmarshal([]byte(payload), &boundaries)
 
-			fmt.Printf("%+v\n", boundaries)
+			//fmt.Printf("%+v\n", boundaries)
 
 			if err != nil {
 				e := fmt.Sprintf("Error parsing boundaries string: %v\n", err)
