@@ -19,8 +19,8 @@ type Message struct {
 	AppId   string
 	Type    string
 	Subtype string
-	Token   string
-	Text    string
+	//Token   string
+	Text string
 }
 
 // Struttura per il WebSocket
