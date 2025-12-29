@@ -181,10 +181,15 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
  * GET /connections
  */
 func GetConnectionsHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := auth.CheckAuthorization(r)
+	claims, err := auth.CheckAuthorization(r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	if auth.HasPrivilege(claims["privileges"].(string), "ek_read_websocket") == false {
+		http.Error(w, "missing required privileges", http.StatusUnauthorized)
 		return
 	}
 

@@ -335,10 +335,15 @@ func DeleteSessionHandler(w http.ResponseWriter, r *http.Request) {
  */
 func DeleteAllSessionsHandler(w http.ResponseWriter, r *http.Request) {
 
-	_, err := CheckAuthorization(r)
+	claims, err := CheckAuthorization(r)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	if HasPrivilege(claims["privileges"].(string), "ek_delete_session") == false {
+		http.Error(w, "missing required privileges", http.StatusUnauthorized)
 		return
 	}
 
