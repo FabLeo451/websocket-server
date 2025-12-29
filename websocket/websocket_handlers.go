@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -16,11 +17,11 @@ import (
 )
 
 type Message struct {
-	AppId   string
-	Type    string
-	Subtype string
-	//Token   string
-	Text string
+	AppId     string
+	ChannelId string
+	Type      string
+	Subtype   string
+	Payload   string
 }
 
 // Struttura per il WebSocket
@@ -119,20 +120,29 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
+		bytes, err := base64.StdEncoding.DecodeString(msg.Payload)
+		if err != nil {
+			log.Println("Unable to decode payload from bas64:", err)
+			continue
+		}
+
+		payload := string(bytes)
+
 		// Process message
 
 		var reply Message
 
 		switch msg.AppId {
 		case "here-now":
-			resultStr, err := herenow.MessageHandler(user["id"].(string), msg.Type, msg.Subtype, msg.Text)
+			resultPayloadStr, err := herenow.MessageHandler(user["id"].(string), msg.Type, msg.Subtype, payload)
 
 			if err != nil {
 				log.Println(err)
 			} else {
 				var reply Message
 
-				reply = Message{AppId: msg.AppId, Type: msg.Type, Subtype: msg.Subtype, Text: resultStr}
+				encoded := base64.StdEncoding.EncodeToString([]byte(resultPayloadStr))
+				reply = Message{AppId: msg.AppId, Type: msg.Type, Subtype: msg.Subtype, Payload: encoded}
 
 				jsonStr, _ := json.Marshal(reply)
 
@@ -145,7 +155,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 			if msg.Type == "ping" {
 				now := time.Now().UTC()
 				isoString := now.Format(time.RFC3339)
-				reply = Message{Type: "pong", Text: isoString}
+				reply = Message{Type: "pong", Payload: isoString}
 
 				jsonStr, _ := json.Marshal(reply)
 
@@ -154,7 +164,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 					break
 				}
 			} else {
-				log.Printf("Unhandled message from app '%s' of type '%s': %s\n", msg.AppId, msg.Type, msg.Text)
+				log.Printf("Unhandled message from app '%s' of type '%s': %s\n", msg.AppId, msg.Type, payload)
 				//reply = Message{Type: "default", Text: "Hello from websocket server"}
 			}
 		}

@@ -18,7 +18,7 @@ import (
 /**
  * Handler for websocket messages
  */
-func MessageHandler(userId string, msgType string, subtype string, text string) (string, error) {
+func MessageHandler(userId string, msgType string, subtype string, payload string) (string, error) {
 
 	//log.Printf("Received message of type '%s/%s': %s\n", message.Type, message.Subtype, message.Text)
 
@@ -32,7 +32,7 @@ func MessageHandler(userId string, msgType string, subtype string, text string) 
 
 			var loc Location
 
-			err := json.Unmarshal([]byte(text), &loc)
+			err := json.Unmarshal([]byte(payload), &loc)
 
 			if err != nil {
 				e := fmt.Sprintf("Error parsing location string: %v\n", err)
@@ -45,9 +45,9 @@ func MessageHandler(userId string, msgType string, subtype string, text string) 
 
 			var boundaries Boundaries
 
-			err := json.Unmarshal([]byte(text), &boundaries)
+			err := json.Unmarshal([]byte(payload), &boundaries)
 
-			//fmt.Println(boundaries)
+			fmt.Printf("%+v\n", boundaries)
 
 			if err != nil {
 				e := fmt.Sprintf("Error parsing boundaries string: %v\n", err)
