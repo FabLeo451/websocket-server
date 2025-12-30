@@ -169,6 +169,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		UpdateConnection(sessionId, msg.Type)
 	}
 
 	log.Printf("%s disconnected\n", user["name"])

@@ -8,10 +8,12 @@ import (
 )
 
 type WebsocketConnection struct {
-	Conn      *websocket.Conn `json:"conn"`
-	SessionId string          `json:"sessionId"`
-	Email     string          `json:"email"`
-	Created   time.Time       `json:"created"`
+	Conn             *websocket.Conn `json:"conn"`
+	SessionId        string          `json:"sessionId"`
+	Email            string          `json:"email"`
+	Created          time.Time       `json:"created"`
+	LastActivity     string          `json:"lastActivity"`
+	LastActivityTime time.Time       `json:"lastActivityTime"`
 }
 
 var (
@@ -44,7 +46,7 @@ func AddConnection(conn *websocket.Conn, sessionId string, userData map[string]i
 		Conn:      conn,
 		SessionId: sessionId,
 		Email:     userData["email"].(string),
-		Created:   time.Now(),
+		Created:   time.Now().UTC(),
 	})
 
 	//fmt.Println(connections)
@@ -57,6 +59,19 @@ func RemoveConnection(sessionId string) {
 	for i, c := range connections {
 		if c.SessionId == sessionId {
 			connections = append(connections[:i], connections[i+1:]...)
+			return
+		}
+	}
+}
+
+func UpdateConnection(sessionId string, activity string) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	for i := range connections {
+		if connections[i].SessionId == sessionId {
+			connections[i].LastActivity = activity
+			connections[i].LastActivityTime = time.Now().UTC()
 			return
 		}
 	}
