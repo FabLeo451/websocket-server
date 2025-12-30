@@ -76,3 +76,27 @@ func UpdateConnection(sessionId string, activity string) {
 		}
 	}
 }
+
+func GetWebsocketConnection(sessionId string) *WebsocketConnection {
+	mu.Lock()
+	defer mu.Unlock()
+
+	for i := range connections {
+		if connections[i].SessionId == sessionId {
+			return &connections[i]
+		}
+	}
+
+	return nil
+}
+
+func CloseConnection(conn *websocket.Conn, code int, reason string) {
+	_ = conn.WriteMessage(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(
+			code,
+			reason,
+		),
+	)
+	conn.Close()
+}

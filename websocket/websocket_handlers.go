@@ -78,12 +78,19 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error upgrading WebSocket:", err)
 		return
 	}
-	defer conn.Close()
 
 	sess := auth.SetSessionActive(db.RedisGetConnection(), sessionId, true)
 
 	if sess == nil {
 		log.Printf("Session not found in websocket connection handler: %s\n", sessionId)
+		_ = conn.WriteMessage(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(
+				websocket.ClosePolicyViolation, // 1008
+				"Session not found",
+			),
+		)
+		//conn.Close()
 		return
 	}
 
@@ -96,6 +103,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		RemoveConnection(sessionId)
+		conn.Close()
 	}()
 
 	for {
