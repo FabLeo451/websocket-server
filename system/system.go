@@ -60,8 +60,8 @@ func GetRoot(w http.ResponseWriter, r *http.Request) {
 	formattedStartTime := config.Runtime.StartTime.UTC().Format("2006-01-02 15:04:05") + " UTC"
 
 	data := RootData{
-		Package:      config.Package,
-		Version:      config.Version,
+		Package:      config.Name(),
+		Version:      config.Version(),
 		InstanceName: config.Runtime.InstanceName,
 		BuildTime:    buildTime,
 		StartTime:    formattedStartTime,

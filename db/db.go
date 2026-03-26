@@ -114,7 +114,7 @@ func Open(app string) error {
 			return err
 		}
 	} else {
-		if config.Conf.DB.Enabled {
+		if config.PosgresEnabled() {
 			config.Runtime.Database = "External"
 
 			log.Printf("Connecting to database %s:%s...\n", os.Getenv("DB_HOST"), os.Getenv("DB_PORT"))
@@ -126,7 +126,7 @@ func Open(app string) error {
 		}
 	}
 
-	if config.Conf.Redis.Enabled {
+	if config.RedisEnabled() {
 		log.Printf("Connecting to Redis %s:%s...\n", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
 
 		_, err := RedisConnect()

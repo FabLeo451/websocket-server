@@ -24,7 +24,7 @@ var rootCmd = &cobra.Command{
 	Use:     os.Args[0] + " [command]",
 	Short:   "Ekhoes Server",
 	Long:    "CLI to start and manage Ekhoes Server.",
-	Version: config.Version,
+	Version: config.Version(),
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		config.Init()
 

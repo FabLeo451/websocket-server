@@ -8,22 +8,23 @@ import (
 	"log"
 	"net/http"
 	"os"
+
 	//"path"
 	"time"
-	"websocket-server/config"
 	"websocket-server/auth"
-	"websocket-server/herenow"
-	"websocket-server/websocket"
-	"websocket-server/terminal"
-	"websocket-server/system"
+	"websocket-server/config"
 	"websocket-server/db"
+	"websocket-server/herenow"
+	"websocket-server/system"
+	"websocket-server/terminal"
+	"websocket-server/websocket"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	
-    "context"
-    "os/signal"
-    "syscall"
+
+	"context"
+	"os/signal"
+	"syscall"
 )
 
 func DynamicCORSMiddleware(next http.Handler) http.Handler {
@@ -53,14 +54,14 @@ func DynamicCORSMiddleware(next http.Handler) http.Handler {
  */
 func Start() int {
 
-	log.Printf("Starting %s %s\n\tpid=%d\n\tlocal=%v\n\tpostgres=%v\n\tredis=%v\n", 
-		config.Conf.Package.Name, 
+	log.Printf("Starting %s %s\n\tpid=%d\n\tlocal=%v\n\tpostgres=%v\n\tredis=%v\n",
+		config.Conf.Package.Name,
 		config.Conf.Package.Version,
 		os.Getpid(),
 		config.Local(),
-		config.Conf.DB.Enabled, 
-		config.Conf.Redis.Enabled)
-		
+		config.PosgresEnabled(),
+		config.RedisEnabled())
+
 	err := db.Open("")
 
 	if err != nil {
@@ -78,15 +79,15 @@ func Start() int {
 
 	// Websocket endpoint
 	r.Method("GET", "/ws", http.HandlerFunc(websocket.HandleConnection))
-	
+
 	// Ctl routes
 	r.Route("/ctl", func(r chi.Router) {
 		r.Get("/sessions", auth.GetSessionsHandler)
 		r.Delete("/session/{id}", auth.DeleteSessionHandler)
 		r.Delete("/sessions", auth.DeleteAllSessionsHandler)
-		
+
 		r.Get("/connections", websocket.GetConnectionsHandler)
-		
+
 		r.Get("/system", system.GetSystemInfo)
 		r.Get("/top", system.TopCpuProcesses)
 	})
@@ -94,44 +95,44 @@ func Start() int {
 	r.Get("/metrics", system.GetMetrics)
 
 	r.Get("/terminal", terminal.OpenTerminal)
-	
+
 	// Init applications
 
 	if !herenow.Init(r) {
-		log.Println("Error initializing HereNow");
+		log.Println("Error initializing HereNow")
 		return 1
 	}
 
-    // Create a context that will be removed on SIGINT or SIGTERM
-    ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-    defer stop()
+	// Create a context that will be removed on SIGINT or SIGTERM
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	addr := fmt.Sprintf(":%d", config.Conf.Port)
 
-    srv := &http.Server{
-        Addr:              addr,
-        Handler:           r,
-        ReadHeaderTimeout: 5 * time.Second,
-        ReadTimeout:       30 * time.Second,
-        WriteTimeout:      30 * time.Second,
-        IdleTimeout:       60 * time.Second,
-    }
-	
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
 	errCh := make(chan error, 1)
 	go func() {
 		log.Printf("Listening on port %d...\n", config.Conf.Port)
 
 		err := srv.ListenAndServe()
-		
+
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			//log.Println("Error starting server:", err)
 			errCh <- err
 			return
 		}
-		
+
 		errCh <- nil
 	}()
-	
+
 	// Wait for events
 	select {
 	case err := <-errCh:
@@ -143,36 +144,36 @@ func Start() int {
 		log.Println("Termination signal received")
 	}
 
-    // Wait for signals
-    //<-ctx.Done()
-    //log.Println("Termination signal received")
+	// Wait for signals
+	//<-ctx.Done()
+	//log.Println("Termination signal received")
 
-    // Create a context for timeout
-    shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-    defer cancel()
+	// Create a context for timeout
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
 
-    log.Println("Shutting down server...")
+	log.Println("Shutting down server...")
 
-    // Close server connections, no more accepted requests.
-    // Wait pending connections to end within the timeout.
-    if err := srv.Shutdown(shutdownCtx); err != nil {
-        log.Printf("Can't shut down gracefully: %v. Forcing Close()", err)
-        if cerr := srv.Close(); cerr != nil {
-            log.Printf("Errore Close(): %v", cerr)
-        }
-    }
+	// Close server connections, no more accepted requests.
+	// Wait pending connections to end within the timeout.
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("Can't shut down gracefully: %v. Forcing Close()", err)
+		if cerr := srv.Close(); cerr != nil {
+			log.Printf("Errore Close(): %v", cerr)
+		}
+	}
 
 	if config.Conf.DB.Enabled {
 		log.Println("Closing database connection...")
 		db.Close(db.DB_GetConnection())
 	}
-	
+
 	if config.Conf.Redis.Enabled {
 		log.Println("Closing Redis connection...")
 		db.RedisClose()
 	}
 
 	log.Println("Server stopped")
-	
+
 	return 0
 }

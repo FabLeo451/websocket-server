@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-var Package string = "Ekhoes API server"
-var Version string = "1.0.0"
+var name string = "Ekhoes API server"
+var version string = "1.0.0"
 var buildTime string
 
 type Configuration struct {
@@ -66,8 +66,8 @@ func Init() {
 	// Configura Viper per leggere da ENV
 	viper.AutomaticEnv()
 
-	Conf.Package.Name = Package
-	Conf.Package.Version = Version
+	Conf.Package.Name = name
+	Conf.Package.Version = version
 
 	Conf.DB.Enabled = viper.GetBool("DB_ENABLED")
 	Conf.DB.Host = viper.GetString("DB_HOST")
@@ -108,6 +108,22 @@ func Init() {
 	//fmt.Printf("%+v\n", conf)
 }
 
+func Name() string {
+	return Conf.Package.Name
+}
+
+func Version() string {
+	return Conf.Package.Version
+}
+
 func Local() bool {
 	return Runtime.Local
+}
+
+func PosgresEnabled() bool {
+	return Conf.DB.Enabled
+}
+
+func RedisEnabled() bool {
+	return Conf.Redis.Enabled
 }
