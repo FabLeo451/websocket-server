@@ -62,7 +62,7 @@ func Start() int {
 		config.PosgresEnabled(),
 		config.RedisEnabled())
 
-	err := db.Open("")
+	err := db.OpenStaff("")
 
 	if err != nil {
 		log.Fatal(err)
@@ -163,15 +163,7 @@ func Start() int {
 		}
 	}
 
-	if config.PosgresEnabled() {
-		log.Println("Closing database connection...")
-		db.Close(db.DB_GetConnection())
-	}
-
-	if config.RedisEnabled() {
-		log.Println("Closing Redis connection...")
-		db.RedisClose()
-	}
+	db.CloseStuff()
 
 	log.Println("Server stopped")
 

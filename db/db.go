@@ -96,7 +96,7 @@ func DB_Ping() bool {
 	return err == nil
 }
 
-func Open(app string) error {
+func OpenStaff(app string) error {
 	if config.Local() {
 		config.Runtime.Database = "Local"
 		config.Runtime.Local = true
@@ -138,8 +138,21 @@ func Open(app string) error {
 	return nil
 }
 
+func CloseStuff() {
+
+	if _connection != nil {
+		log.Println("Closing database connection...")
+		Close(_connection)
+	}
+
+	if config.RedisEnabled() {
+		log.Println("Closing Redis connection...")
+		RedisClose()
+	}
+}
+
 func OpenAndInit(app string, flagCreateAdmin bool) error {
-	err := Open(app)
+	err := OpenStaff(app)
 
 	if err != nil {
 		return err
