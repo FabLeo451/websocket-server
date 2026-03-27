@@ -1,9 +1,4 @@
 
-CREATE USER ekhoesadmin WITH PASSWORD '!ek03s$01';
-CREATE DATABASE ekhoesdb;
-
-\c ekhoesdb
-
 CREATE EXTENSION pgcrypto;
 CREATE SCHEMA ekhoes;
 GRANT ALL PRIVILEGES ON SCHEMA ekhoes TO ekhoesadmin;

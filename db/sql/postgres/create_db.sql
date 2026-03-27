@@ -1,0 +1,4 @@
+
+CREATE USER ekhoesadmin WITH PASSWORD '!ek03s$01';
+CREATE DATABASE ekhoesdb;
+

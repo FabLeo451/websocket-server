@@ -79,6 +79,20 @@ func LoadSQL(filename string) (string, error) {
 	return sql, nil
 }
 
+func ExecuteSQL(filename string, args ...any) error {
+	script, err := LoadSQL(filename)
+	if err != nil {
+		return err
+	}
+
+	_, err = DB_GetConnection().Exec(script, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Close(db *sql.DB) {
 	if db != nil {
 		db.Close()
@@ -162,16 +176,5 @@ func OpenAndInit(app string) error {
 }
 
 func CreateAdmin(email string) error {
-	script, err := LoadSQL("create_admin.sql")
-
-	//fmt.Println(sqlScript)
-
-	//userID := uuid.New().String()
-
-	_, err = DB_GetConnection().Exec(script, email)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ExecuteSQL("create_admin.sql", email)
 }
