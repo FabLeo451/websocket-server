@@ -16,7 +16,7 @@ var (
 	flagPort            int
 	flagModule          string
 	flagCreateIfMissing bool
-	flagCreateAdmin     bool
+	flagAdminEmail      string
 )
 
 // Root command
@@ -51,9 +51,15 @@ var startCmd = &cobra.Command{
 					log.Fatal(err)
 				}
 
-				if err := db.OpenAndInit(flagModule, flagCreateAdmin); err != nil {
+				if err := db.OpenAndInit(flagModule); err != nil {
 					log.Fatal(err)
 				}
+
+				if flagAdminEmail != "" {
+					log.Println("Creating administrator user...")
+					db.CreateAdmin(flagAdminEmail)
+				}
+
 			}
 		}
 
@@ -70,11 +76,17 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initializes a module",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := db.OpenAndInit(flagModule, flagCreateAdmin)
+		err := db.OpenAndInit(flagModule)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
+		if flagAdminEmail != "" {
+			log.Println("Creating administrator user...")
+			db.CreateAdmin(flagAdminEmail)
+		}
+
 		return nil
 	},
 }
@@ -89,10 +101,10 @@ func init() {
 
 	startCmd.Flags().IntVarP(&flagPort, "port", "p", 9876, "Server port")
 	startCmd.Flags().BoolVarP(&flagCreateIfMissing, "create-db", "C", false, "Create local database if not exists (local mode only)")
-	startCmd.Flags().BoolVarP(&flagCreateAdmin, "create-admin", "A", false, "Create default admin user")
+	startCmd.Flags().StringVarP(&flagAdminEmail, "create-admin", "A", "", "Create admin user")
 
 	initCmd.Flags().StringVarP(&flagModule, "module", "m", "ekhoes", "Module to be initialized")
-	initCmd.Flags().BoolVarP(&flagCreateAdmin, "create-admin", "A", false, "Create default admin user")
+	initCmd.Flags().StringVarP(&flagAdminEmail, "create-admin", "A", "", "Create admin user")
 }
 
 func main() {

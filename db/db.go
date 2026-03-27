@@ -31,10 +31,10 @@ func init() {
 }
 
 // Exported custom init
-func Init(module string, flagCreateAdmin bool) error {
+func Init(module string) error {
 	log.Printf("Initializing database (%s)...", config.Runtime.Database)
 
-	sql, err := LoadSQL("init.sql")
+	script, err := LoadSQL("init.sql")
 
 	if err != nil {
 		log.Fatal(err)
@@ -42,19 +42,20 @@ func Init(module string, flagCreateAdmin bool) error {
 
 	//fmt.Println(sql)
 
-	_, err = DB_GetConnection().Exec(sql)
+	_, err = DB_GetConnection().Exec(script)
 
 	if err != nil {
 		return err
 	}
+	/*
+		if flagCreateAdmin {
+			log.Print("Creating Administrator user...")
 
-	if flagCreateAdmin {
-		log.Print("Creating Administrator user...")
-
-		if err := CreateAdmin(); err != nil {
-			return err
+			if err := CreateAdmin("admin"); err != nil {
+				return err
+			}
 		}
-	}
+	*/
 
 	return nil
 }
@@ -126,13 +127,10 @@ func OpenStaff(app string) error {
 		}
 	}
 
-	if config.RedisEnabled() {
-		log.Printf("Connecting to Redis %s:%s...\n", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
+	err := OpenCache()
 
-		_, err := RedisConnect()
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -151,21 +149,28 @@ func CloseStuff() {
 	}
 }
 
-func OpenAndInit(app string, flagCreateAdmin bool) error {
+func OpenAndInit(app string) error {
 	err := OpenStaff(app)
 
 	if err != nil {
 		return err
 	}
 
-	err = Init(app, flagCreateAdmin)
+	err = Init(app)
 
 	return err
 }
 
-func CreateAdmin() error {
-	if config.Local() {
-		return createAdminLocal()
+func CreateAdmin(email string) error {
+	script, err := LoadSQL("create_admin.sql")
+
+	//fmt.Println(sqlScript)
+
+	//userID := uuid.New().String()
+
+	_, err = DB_GetConnection().Exec(script, email)
+	if err != nil {
+		return err
 	}
 
 	return nil
