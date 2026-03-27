@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"websocket-server/db"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -35,7 +36,7 @@ type Session struct {
 	Updated    time.Time `json:"updated"`
 }
 
-func CreateSession(rdb *redis.Client, session Session) (string, error) {
+func CreateSession(session Session) (string, error) {
 
 	//rdb := RedisGetConnection()
 
@@ -46,7 +47,7 @@ func CreateSession(rdb *redis.Client, session Session) (string, error) {
 
 	sessionID := uuid.New().String()
 
-	err = rdb.Set(ctx, sessionID, data, 0).Err()
+	err = db.Set(sessionID, data)
 
 	if err != nil {
 		log.Fatalf("Error creating session: %v", err)
@@ -160,19 +161,17 @@ func SetSessionActive(rdb *redis.Client, key string, active bool) map[string]int
 	return data
 }
 
-func GetSessions(rdb *redis.Client, pattern string) ([]Session, error) {
-	ctx := context.Background()
-
+func GetSessions(rdb *redis.Client) ([]Session, error) {
 	var sessions []Session
 
-	// Recupera tutte le chiavi corrispondenti al pattern
-	keys, err := rdb.Keys(ctx, pattern).Result()
+	keys, err := db.GetKeysByPattern("*")
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(keys)
 
 	for _, key := range keys {
-		val, err := rdb.Get(ctx, key).Result()
+		val, err := db.Get(key)
 		if err != nil {
 			log.Printf("Errore nel leggere chiave %s: %v", key, err)
 			continue

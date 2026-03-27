@@ -114,7 +114,7 @@ func GetSessionsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessions, err := GetSessions(db.RedisGetConnection(), "*")
+	sessions, err := GetSessions(db.RedisGetConnection())
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

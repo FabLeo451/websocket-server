@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-
-	"websocket-server/db"
 )
 
 type Credentials struct {
@@ -96,7 +94,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			Updated:    time.Now().UTC(),
 		}
 
-		sessionId, err = CreateSession(db.RedisGetConnection(), sess)
+		sessionId, err = CreateSession(sess)
 
 		if err != nil {
 			log.Println(err)
