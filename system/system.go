@@ -19,8 +19,6 @@ import (
 	"github.com/shirou/gopsutil/v4/process"
 )
 
-var buildTime string
-
 var tmpl = template.Must(template.ParseFS(assets.TemplatesFS, "root.htm"))
 
 type RootData struct {
@@ -57,14 +55,14 @@ func GetRoot(w http.ResponseWriter, r *http.Request) {
 	   }
 	*/
 
-	formattedStartTime := config.Runtime.StartTime.UTC().Format("2006-01-02 15:04:05") + " UTC"
+	//formattedStartTime := config.Runtime.StartTime.UTC().Format("2006-01-02 15:04:05") + " UTC"
 
 	data := RootData{
 		Package:      config.Name(),
 		Version:      config.Version(),
 		InstanceName: config.Runtime.InstanceName,
-		BuildTime:    buildTime,
-		StartTime:    formattedStartTime,
+		BuildTime:    config.BuildTime(),
+		StartTime:    config.Runtime.StartTime.Format(time.RFC3339),
 		UpTime:       humanizeDuration(time.Since(config.Runtime.StartTime)),
 		Database:     config.Runtime.Database,
 	}

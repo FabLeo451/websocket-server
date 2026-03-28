@@ -116,6 +116,10 @@ func Version() string {
 	return Conf.Package.Version
 }
 
+func BuildTime() string {
+	return buildTime
+}
+
 func Local() bool {
 	return Runtime.Local
 }
