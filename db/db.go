@@ -131,7 +131,7 @@ func OpenStaff(app string) error {
 		}
 	} else {
 		if config.PosgresEnabled() {
-			config.Runtime.Database = "External"
+			config.Runtime.Database = "PostgreSQL"
 
 			log.Printf("Connecting to database %s:%s...\n", os.Getenv("DB_HOST"), os.Getenv("DB_PORT"))
 
@@ -191,6 +191,10 @@ func CreateDatabase() error {
 	return nil
 }
 
+func CreateUser(id string, name string, email string, password string, status string) error {
+	return ExecuteSQL("create_user.sql", id, name, email, password, status)
+}
+
 func CreateAdmin(email string) error {
-	return ExecuteSQL("create_admin.sql", email)
+	return CreateUser("1000", "Administrator", email, "admin", "enabled")
 }
