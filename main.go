@@ -47,7 +47,7 @@ var startCmd = &cobra.Command{
 			if !db.CheckLocal(flagModule) {
 				log.Printf("Creating database '%s'...", flagModule)
 
-				if err := db.CreateLocal(flagModule); err != nil {
+				if err := db.CreateDatabase(); err != nil {
 					log.Fatal(err)
 				}
 
@@ -76,6 +76,13 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initializes a module",
 	RunE: func(cmd *cobra.Command, args []string) error {
+
+		if flagCreateIfMissing {
+			if err := db.CreateDatabase(); err != nil {
+				log.Fatal(err)
+			}
+		}
+
 		err := db.OpenAndInit(flagModule)
 		if err != nil {
 			fmt.Println(err)
@@ -83,8 +90,12 @@ var initCmd = &cobra.Command{
 		}
 
 		if flagAdminEmail != "" {
-			log.Println("Creating administrator user...")
-			db.CreateAdmin(flagAdminEmail)
+			log.Printf("Creating administrator user %s...", flagAdminEmail)
+			err := db.CreateAdmin(flagAdminEmail)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
 		}
 
 		return nil

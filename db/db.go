@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"path/filepath"
 
 	"database/sql"
 
@@ -40,7 +41,7 @@ func Init(module string) error {
 		log.Fatal(err)
 	}
 
-	//fmt.Println(sql)
+	//fmt.Println(script)
 
 	_, err = DB_GetConnection().Exec(script)
 
@@ -74,9 +75,9 @@ func LoadSQL(filename string) (string, error) {
 		return "", err
 	}
 
-	sql := string(content)
+	script := string(content)
 
-	return sql, nil
+	return script, nil
 }
 
 func ExecuteSQL(filename string, args ...any) error {
@@ -173,6 +174,21 @@ func OpenAndInit(app string) error {
 	err = Init(app)
 
 	return err
+}
+
+func CreateDatabase() error {
+	if config.PosgresEnabled() {
+		return ExecuteSQL("create_db.sql")
+	} else if config.Local() {
+		dbPath := fmt.Sprintf("%s/ekhoes.db", dbFolder)
+
+		dir := filepath.Dir(dbPath)
+		err := os.MkdirAll(dir, 0755)
+
+		return err
+	}
+
+	return nil
 }
 
 func CreateAdmin(email string) error {

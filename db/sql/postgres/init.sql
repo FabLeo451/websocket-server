@@ -1,7 +1,7 @@
 
-CREATE EXTENSION pgcrypto;
-CREATE SCHEMA ekhoes;
-GRANT ALL PRIVILEGES ON SCHEMA ekhoes TO ekhoesadmin;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE SCHEMA IF NOT EXISTS ekhoes AUTHORIZATION ekhoesadmin;
+--GRANT ALL PRIVILEGES ON SCHEMA ekhoes TO ekhoesadmin;
 
 DROP TABLE IF EXISTS ekhoes.USER_ROLES;
 DROP TABLE IF EXISTS ekhoes.USERS;
@@ -22,10 +22,6 @@ CREATE TABLE IF NOT EXISTS ekhoes.users (
 	created TIMESTAMP DEFAULT NOW(),
 	updated TIMESTAMP DEFAULT NOW()
 );
-
--- User id sequence
-DROP SEQUENCE IF EXISTS ekhoes.user_name_seq;
-CREATE SEQUENCE IF NOT EXISTS ekhoes.user_name_seq START 1;
 
 -- Roles
 CREATE TABLE IF NOT EXISTS ekhoes.ROLES (
@@ -89,5 +85,4 @@ insert into ekhoes.NEWS("id", "text") values ('1', 'Database initialized');
 
 -- Grants
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ekhoes TO ekhoesadmin;
-GRANT USAGE, SELECT, UPDATE ON SEQUENCE ekhoes.user_name_seq TO ekhoesadmin;
 

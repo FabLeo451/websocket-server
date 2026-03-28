@@ -1,4 +1,5 @@
 
 CREATE USER ekhoesadmin WITH PASSWORD '!ek03s$01';
-CREATE DATABASE ekhoesdb;
 
+CREATE DATABASE ekhoesdb;
+GRANT ALL PRIVILEGES ON DATABASE ekhoesdb TO ekhoesadmin;
