@@ -50,6 +50,7 @@ type RuntimeStruct struct {
 	InstanceName string
 	Database     string
 	Local        bool
+	Cache        string
 }
 
 var Runtime RuntimeStruct
@@ -91,9 +92,9 @@ func Init() {
 	Conf.JwtSecret = viper.GetString("JWT_SECRET")
 
 	Runtime.InstanceName = viper.GetString("INSTANCE_NAME")
-
 	Runtime.StartTime = time.Now().UTC()
 	Runtime.Database = "None"
+	Runtime.Cache = "None"
 
 	hostInfo, _ := host.Info()
 

@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
 
     <title>{{ .Package }} Dashboard</title>
 
@@ -27,7 +29,7 @@
             background: #fff;
             padding: 20px 20px;
             border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
             width: 60%;
             max-width: 600px;
         }
@@ -82,11 +84,30 @@
         <div class="version">Version {{ .Version }}</div>
 
         <table class="info-table">
-            <tr><td>Instance name</td><td>{{ .InstanceName }}</td></tr>
-            <tr><td>Build time</td><td>{{ .BuildTime }}</td></tr>
-            <tr><td>Start time</td><td>{{ .StartTime }}</td></tr>
-            <tr><td>Uptime</td><td>{{ .UpTime }}</td></tr>
-            <tr><td>Database</td><td>{{ .Database }}</td></tr>
+            <tr>
+                <td>Instance name</td>
+                <td>{{ .InstanceName }}</td>
+            </tr>
+            <tr>
+                <td>Build time</td>
+                <td>{{ .BuildTime }}</td>
+            </tr>
+            <tr>
+                <td>Start time</td>
+                <td>{{ .StartTime }}</td>
+            </tr>
+            <tr>
+                <td>Uptime</td>
+                <td>{{ .UpTime }}</td>
+            </tr>
+            <tr>
+                <td>Database</td>
+                <td>{{ .Database }}</td>
+            </tr>
+            <tr>
+                <td>Cache</td>
+                <td>{{ .Cache }}</td>
+            </tr>
         </table>
 
         <div class="footer">
@@ -96,4 +117,5 @@
     </div>
 
 </body>
+
 </html>

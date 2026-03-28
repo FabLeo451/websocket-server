@@ -19,6 +19,8 @@ var (
 
 func OpenCache() error {
 	if config.RedisEnabled() {
+		config.Runtime.Cache = "Redis"
+
 		log.Printf("Connecting to Redis %s:%s...\n", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
 
 		_, err := RedisConnect()
@@ -26,7 +28,10 @@ func OpenCache() error {
 			return err
 		}
 	} else {
+		config.Runtime.Cache = "Internal"
+
 		log.Println("Creating cache...")
+
 		c := gocache.NewCache().WithMaxSize(1000).WithEvictionPolicy(gocache.LeastRecentlyUsed)
 		cache = c
 	}
