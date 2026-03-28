@@ -191,10 +191,16 @@ func CreateDatabase() error {
 	return nil
 }
 
-func CreateUser(id string, name string, email string, password string, status string) error {
-	return ExecuteSQL("create_user.sql", id, name, email, password, status)
+func CreateUser(id string, name string, email string, password string, status string, role string) error {
+	err := ExecuteSQL("create_user.sql", id, name, email, password, status)
+
+	if err == nil {
+		return ExecuteSQL("add_role.sql", id, role)
+	}
+
+	return nil
 }
 
 func CreateAdmin(email string) error {
-	return CreateUser("1000", "Administrator", email, "admin", "enabled")
+	return CreateUser("1000", "Administrator", email, "admin", "enabled", "ADMIN")
 }
