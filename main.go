@@ -41,25 +41,9 @@ var startCmd = &cobra.Command{
 	Short: "Start server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		if config.Local() && flagCreateIfMissing {
-			log.Printf("Checking database '%s'...", flagModule)
-
-			if !db.CheckLocal(flagModule) {
-				log.Printf("Creating database '%s'...", flagModule)
-
-				if err := db.CreateDatabase(); err != nil {
-					log.Fatal(err)
-				}
-
-				if err := db.OpenAndInit(flagModule); err != nil {
-					log.Fatal(err)
-				}
-
-				if flagAdminEmail != "" {
-					log.Println("Creating administrator user...")
-					db.CreateAdmin(flagAdminEmail)
-				}
-
+		if flagCreateIfMissing {
+			if err := StartInitSequence(); err != nil {
+				log.Fatal("Aborted")
 			}
 		}
 
@@ -76,30 +60,46 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initializes a module",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		return StartInitSequence()
+	},
+}
 
-		if flagCreateIfMissing {
-			if err := db.CreateDatabase(); err != nil {
-				log.Fatal(err)
-			}
+func StartInitSequence() error {
+	log.Println("Checking if database exists...")
+
+	dbExists, err := db.CheckDatabaseExists()
+
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+
+	if !dbExists && flagCreateIfMissing {
+		log.Println("Creating database...")
+
+		if err := db.CreateDatabase(); err != nil {
+			log.Fatal(err)
 		}
+	}
 
-		err := db.OpenAndInit(flagModule)
+	err = db.OpenAndInit(flagModule)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	if flagAdminEmail != "" {
+		log.Printf("Creating administrator user %s...", flagAdminEmail)
+		err := db.CreateAdmin(flagAdminEmail)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+	}
 
-		if flagAdminEmail != "" {
-			log.Printf("Creating administrator user %s...", flagAdminEmail)
-			err := db.CreateAdmin(flagAdminEmail)
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
-		}
+	log.Println("Initialization successful")
 
-		return nil
-	},
+	return nil
 }
 
 func init() {
@@ -111,10 +111,11 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 
 	startCmd.Flags().IntVarP(&flagPort, "port", "p", 9876, "Server port")
-	startCmd.Flags().BoolVarP(&flagCreateIfMissing, "create-db", "C", false, "Create local database if not exists (local mode only)")
+	startCmd.Flags().BoolVarP(&flagCreateIfMissing, "create-db", "C", false, "Create database if not exists")
 	startCmd.Flags().StringVarP(&flagAdminEmail, "create-admin", "A", "", "Create admin user")
 
-	initCmd.Flags().StringVarP(&flagModule, "module", "m", "ekhoes", "Module to be initialized")
+	//initCmd.Flags().StringVarP(&flagModule, "module", "m", "ekhoes", "Module to be initialized")
+	initCmd.Flags().BoolVarP(&flagCreateIfMissing, "create-db", "C", false, "Create database if not exists")
 	initCmd.Flags().StringVarP(&flagAdminEmail, "create-admin", "A", "", "Create admin user")
 }
 

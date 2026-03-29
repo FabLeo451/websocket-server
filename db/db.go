@@ -176,6 +176,24 @@ func OpenAndInit(app string) error {
 	return err
 }
 
+func CheckDatabaseExists() (bool, error) {
+	exists := false
+
+	if config.PosgresEnabled() {
+		e, err := CheckPostgres()
+
+		if err != nil {
+			return false, err
+		}
+
+		exists = e
+	} else if config.Local() {
+		exists = CheckLocal("ekhoes")
+	}
+
+	return exists, nil
+}
+
 func CreateDatabase() error {
 	if config.PosgresEnabled() {
 		return ExecuteSQL("create_db.sql")

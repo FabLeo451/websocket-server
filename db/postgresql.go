@@ -31,7 +31,7 @@ func OpenPostgres() (*sql.DB, error) {
 	return db, err
 }
 
-func CheckDatabase() (bool, error) {
+func CheckPostgres() (bool, error) {
 	conn, err := OpenPostgres()
 	defer Close(conn)
 
