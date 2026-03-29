@@ -40,10 +40,20 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start server",
 	RunE: func(cmd *cobra.Command, args []string) error {
-
 		if flagCreateIfMissing {
-			if err := StartInitSequence(); err != nil {
-				log.Fatal("Aborted")
+			log.Println("Checking if database exists...")
+
+			dbExists, err := db.CheckDatabaseExists()
+
+			if err != nil {
+				log.Fatal(err)
+				os.Exit(1)
+			}
+
+			if !dbExists {
+				if err := StartInitSequence(); err != nil {
+					log.Fatal("Aborted")
+				}
 			}
 		}
 
@@ -65,8 +75,6 @@ var initCmd = &cobra.Command{
 }
 
 func StartInitSequence() error {
-	log.Println("Checking if database exists...")
-
 	dbExists, err := db.CheckDatabaseExists()
 
 	if err != nil {
