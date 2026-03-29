@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"websocket-server/db"
+	"ekhoes-server/db"
 )
 
 type AuthResult struct {

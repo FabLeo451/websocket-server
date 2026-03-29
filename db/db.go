@@ -12,7 +12,7 @@ import (
 
 	_ "github.com/lib/pq"
 
-	"websocket-server/config"
+	"ekhoes-server/config"
 )
 
 //go:embed sql

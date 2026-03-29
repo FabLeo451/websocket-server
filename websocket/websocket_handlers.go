@@ -11,9 +11,9 @@ import (
 
 	"log"
 
-	"websocket-server/auth"
-	"websocket-server/db"
-	"websocket-server/terminal"
+	"ekhoes-server/auth"
+	"ekhoes-server/db"
+	"ekhoes-server/terminal"
 
 	//"websocket-server/herenow"
 

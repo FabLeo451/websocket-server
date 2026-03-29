@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/go-chi/chi/v5"
 
-	"websocket-server/db"
+	"ekhoes-server/db"
 )
 
 type Location struct {

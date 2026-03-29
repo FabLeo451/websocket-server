@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
-	"websocket-server/db"
+	"ekhoes-server/db"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"

@@ -7,9 +7,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"websocket-server/config"
-	"websocket-server/db"
-	"websocket-server/server"
+	"ekhoes-server/config"
+	"ekhoes-server/db"
+	"ekhoes-server/server"
 )
 
 var (

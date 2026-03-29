@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"websocket-server/db"
+	"ekhoes-server/db"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"

@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"websocket-server/auth"
-	"websocket-server/db"
+	"ekhoes-server/auth"
+	"ekhoes-server/db"
 
 	"github.com/go-chi/chi/v5"
 )

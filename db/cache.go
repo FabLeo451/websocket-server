@@ -9,7 +9,7 @@ import (
 	"github.com/TwiN/gocache/v2"
 	"github.com/redis/go-redis/v9"
 
-	"websocket-server/config"
+	"ekhoes-server/config"
 )
 
 var (

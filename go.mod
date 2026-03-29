@@ -1,4 +1,4 @@
-module websocket-server
+module ekhoes-server
 
 go 1.25.0
 
