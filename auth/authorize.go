@@ -48,7 +48,8 @@ func Authorize(email string, password string) (*AuthResult, error) {
 		rows, err := conn.Query(query, password, email)
 
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("User not found")
+			result.Message = "User not found"
+			return result, nil
 		} else if err != nil {
 			return nil, err
 		}
@@ -66,7 +67,8 @@ func Authorize(email string, password string) (*AuthResult, error) {
 		}
 
 		if result.Id == "" {
-			return nil, errors.New("User not found")
+			result.Message = "User not found"
+			return result, nil
 		}
 
 	} else {
