@@ -3,9 +3,7 @@ package websocket
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"net/http/httputil"
 	"os"
 	"time"
 
@@ -59,22 +57,33 @@ func updateLastAccess(userId string) {
 }
 
 func HandleConnection(w http.ResponseWriter, r *http.Request) {
+	/*
+		dump, err := httputil.DumpRequest(r, true) // true = include il body
+		if err != nil {
+			fmt.Println("Errore DumpRequest:", err)
+			return
+		}
 
-	dump, err := httputil.DumpRequest(r, true) // true = include il body
-	if err != nil {
-		fmt.Println("Errore DumpRequest:", err)
-		return
+		fmt.Println("===== HTTP REQUEST DUMP =====")
+		fmt.Println(string(dump))
+		fmt.Println("===== END REQUEST =====")
+	*/
+	token := ""
+
+	// Check cookie
+	//token = r.Header.Get("cookie-ekhoes")
+	cookie, err := r.Cookie("cookie-ekhoes")
+	if err == nil {
+		token = cookie.Value
+	} else {
+		token = r.URL.Query().Get("token")
 	}
-
-	fmt.Println("===== HTTP REQUEST DUMP =====")
-	fmt.Println(string(dump))
-	fmt.Println("===== END REQUEST =====")
-
-	key := r.Header.Get("Sec-WebSocket-Key")
-	fmt.Println("Sec-WebSocket-Key:", key)
+	//fmt.Println("token:", token)
 
 	// Read the temporary token
-	token := r.URL.Query().Get("token")
+	if token == "" {
+		token = r.URL.Query().Get("token")
+	}
 
 	//fmt.Println("Token:", token)
 
