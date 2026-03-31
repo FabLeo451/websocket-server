@@ -129,9 +129,9 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		RemoveConnection(sessionId)
 		conn.Close()
+		log.Printf("%s disconnected\n", sess.User.Name)
+		auth.SetSessionActive(sessionId, false)
 	}()
-
-	log.Printf("Connected\n")
 
 	for {
 
@@ -211,11 +211,6 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 		//UpdateConnection(sessionId, msg.Type)
 	}
-
-	log.Printf("%s disconnected\n", sess.User.Name)
-
-	auth.SetSessionActive(sessionId, false)
-	updateLastAccess(sess.User.Id)
 
 	log.Printf("Disonnected\n")
 }
