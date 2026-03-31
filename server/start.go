@@ -154,7 +154,7 @@ func Start() int {
 
 	log.Println("Shutting down server...")
 
-	// Close server connections, no more accepted requests.
+	// Close server connections, no more requests accepted.
 	// Wait pending connections to end within the timeout.
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Can't shut down gracefully: %v. Forcing Close()", err)
