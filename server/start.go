@@ -10,7 +10,6 @@ import (
 	"os"
 
 	//"path"
-	"time"
 	"ekhoes-server/auth"
 	"ekhoes-server/config"
 	"ekhoes-server/db"
@@ -18,6 +17,7 @@ import (
 	"ekhoes-server/system"
 	"ekhoes-server/terminal"
 	"ekhoes-server/websocket"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -73,7 +73,7 @@ func Start() int {
 	r.Use(middleware.Logger)
 	r.Use(DynamicCORSMiddleware)
 
-	r.Get("/", system.GetRoot)
+	r.Get("/", GetRoot)
 	r.Post("/login", auth.Login)
 	r.Post("/logout", auth.Logout)
 
@@ -92,7 +92,7 @@ func Start() int {
 		r.Get("/top", system.TopCpuProcesses)
 	})
 
-	r.Get("/metrics", system.GetMetrics)
+	r.Get("/metrics", GetMetrics)
 
 	r.Get("/terminal", terminal.OpenTerminal)
 
