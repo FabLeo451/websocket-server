@@ -96,9 +96,9 @@ func Start() int {
 
 	r.Get("/terminal", terminal.OpenTerminal)
 
-	// Init applications
+	// Init modules
 
-	if !herenow.Init(r) {
+	if herenow.Init(r) != nil {
 		log.Println("Error initializing HereNow")
 		return 1
 	}

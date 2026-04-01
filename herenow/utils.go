@@ -67,7 +67,7 @@ type Comment struct {
 	Updated   time.Time `db:"updated" json:"updated"`
 }
 
-func Init(r *chi.Mux) bool {
+func Init(r *chi.Mux) error {
 	
 	log.Println("Initializing HereNow...");
 	
@@ -117,7 +117,7 @@ func Init(r *chi.Mux) bool {
 		r.Get("/search", SearchHandler)
 	})
 
-	return true
+	return nil
 }
 
 /**
