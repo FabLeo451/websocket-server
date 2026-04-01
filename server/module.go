@@ -37,7 +37,12 @@ func InitModules(r *chi.Mux) {
 	for _, id := range ids {
 		id = strings.TrimSpace(id)
 
-		m := modules[id]
+		m, ok := modules[id]
+
+		if !ok {
+			log.Printf("Module not found: %s", id)
+			continue
+		}
 
 		log.Printf("Initializing module %s...", m.Name)
 
