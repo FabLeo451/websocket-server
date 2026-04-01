@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -21,7 +22,7 @@ var (
 
 // Root command
 var rootCmd = &cobra.Command{
-	Use:     os.Args[0] + " [command]",
+	Use:     filepath.Base(os.Args[0]) + " [command]",
 	Short:   "Ekhoes Server",
 	Long:    "CLI to start and manage Ekhoes Server.",
 	Version: config.Version(),
