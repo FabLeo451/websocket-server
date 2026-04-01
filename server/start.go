@@ -13,7 +13,6 @@ import (
 	"ekhoes-server/auth"
 	"ekhoes-server/config"
 	"ekhoes-server/db"
-	"ekhoes-server/herenow"
 	"ekhoes-server/system"
 	"ekhoes-server/terminal"
 	"ekhoes-server/websocket"
@@ -97,11 +96,8 @@ func Start() int {
 	r.Get("/terminal", terminal.OpenTerminal)
 
 	// Init modules
+	InitModules(r)
 
-	if herenow.Init(r) != nil {
-		log.Println("Error initializing HereNow")
-		return 1
-	}
 
 	// Create a context that will be removed on SIGINT or SIGTERM
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

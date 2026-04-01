@@ -1,13 +1,16 @@
-package main
+package server
 
 import (
+	"ekhoes-server/herenow"
 	"log"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type Module struct {
 	Id       string
 	Name     string
-	InitFunc func() error
+	InitFunc func(*chi.Mux) error
 }
 
 var modules []Module
@@ -17,21 +20,21 @@ func init() {
 		{
 			Id:       "herenow",
 			Name:     "HereNow",
-			InitFunc: nil,
+			InitFunc: herenow.Init,
 		},
 	}
 }
 
-func StartModules() {
+func InitModules(r *chi.Mux) {
 	for _, m := range modules {
 
-		log.Printf("\t%s...", m.Name)
+		log.Printf("Initializing module %s...", m.Name)
 
 		if m.InitFunc == nil {
 			continue;
 		}
 
-		if err := m.InitFunc(); err != nil {
+		if err := m.InitFunc(r); err != nil {
 			panic(err)
 		}
 	}

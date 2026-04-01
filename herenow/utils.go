@@ -69,8 +69,6 @@ type Comment struct {
 
 func Init(r *chi.Mux) error {
 	
-	log.Println("Initializing HereNow...");
-	
 	r.Route("/hn", func(r chi.Router) {
 		r.Route("/hotspot", func(r chi.Router) {
 			// GET /hotspot
