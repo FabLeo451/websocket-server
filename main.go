@@ -10,14 +10,15 @@ import (
 
 	"ekhoes-server/config"
 	"ekhoes-server/db"
+	"ekhoes-server/module/herenow"
 	"ekhoes-server/server"
 )
 
 var (
-	flagPort            int
-	flagModule          string
+	flagPort             int
+	flagModule           string
 	flagInstallIfMissing bool
-	flagAdminEmail      string
+	flagAdminEmail       string
 )
 
 // Root command
@@ -129,8 +130,11 @@ func init() {
 }
 
 func main() {
+
+	// Register modules
+	herenow.Register()
+
 	if err := rootCmd.Execute(); err != nil {
-		// Cobra normalmente stampa già l'errore; usiamo log.Fatal come fallback.
 		log.Fatal(err)
 	}
 }

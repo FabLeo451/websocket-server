@@ -3,6 +3,7 @@ package server
 import (
 	"ekhoes-server/assets"
 	"ekhoes-server/config"
+	"ekhoes-server/module"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -58,7 +59,7 @@ func GetRoot(w http.ResponseWriter, r *http.Request) {
 		UpTime:       humanizeDuration(time.Since(config.Runtime.StartTime)),
 		Database:     config.Runtime.Database,
 		Cache:        config.Runtime.Cache,
-		Modules:      GetLoadedModules(),
+		Modules:      module.GetLoadedModules(),
 	}
 
 	if err := tmpl.Execute(w, data); err != nil {

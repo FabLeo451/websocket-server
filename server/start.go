@@ -1,22 +1,20 @@
 package server
 
 import (
-	//"encoding/json"
 	"errors"
-	//"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
-	//"path"
 	"ekhoes-server/auth"
 	"ekhoes-server/config"
 	"ekhoes-server/db"
+	"ekhoes-server/module"
 	"ekhoes-server/system"
 	"ekhoes-server/terminal"
 	"ekhoes-server/websocket"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -96,8 +94,7 @@ func Start() int {
 	r.Get("/terminal", terminal.OpenTerminal)
 
 	// Init modules
-	InitModules(r)
-
+	module.InitModules(r)
 
 	// Create a context that will be removed on SIGINT or SIGTERM
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

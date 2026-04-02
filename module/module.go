@@ -1,7 +1,7 @@
-package server
+package module
 
 import (
-	"ekhoes-server/herenow"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -10,21 +10,25 @@ import (
 )
 
 type Module struct {
+	Id       string
 	Name     string
 	InitFunc func(*chi.Mux) error
 }
 
-var modules map[string]Module
+// var modules map[string]Module
+var modules = make(map[string]Module)
 var loaded []string
 
+/*
 func init() {
-	modules = map[string]Module{
-		"herenow": {
-			Name:     "HereNow",
-			InitFunc: herenow.Init,
-		},
-	}
+		modules = map[string]Module{
+			"herenow": {
+				Name:     "Ekhoes",
+				InitFunc: herenow.Init,
+			},
+		}
 }
+*/
 
 func InitModules(r *chi.Mux) {
 	modulesEnv := os.Getenv("MODULES")
@@ -57,4 +61,9 @@ func InitModules(r *chi.Mux) {
 
 func GetLoadedModules() string {
 	return strings.Join(loaded, ",")
+}
+
+func Add(m Module) {
+	modules[m.Id] = m
+	fmt.Println(modules)
 }

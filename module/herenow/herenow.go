@@ -10,11 +10,14 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"ekhoes-server/db"
+	"ekhoes-server/module"
 )
+
+var thisModule module.Module
 
 type Location struct {
 	Latitude  float64 `json:"latitude"`
@@ -67,8 +70,20 @@ type Comment struct {
 	Updated   time.Time `db:"updated" json:"updated"`
 }
 
+func Register() {
+	fmt.Println("Initializing ", thisModule.Name)
+	thisModule = module.Module{
+		Id:       "herenow",
+		Name:     "HereNow",
+		InitFunc: Init,
+	}
+	module.Add(thisModule)
+}
+
 func Init(r *chi.Mux) error {
-	
+
+	//utils.Log(thisModule, "Initializing...")
+
 	r.Route("/hn", func(r chi.Router) {
 		r.Route("/hotspot", func(r chi.Router) {
 			// GET /hotspot
