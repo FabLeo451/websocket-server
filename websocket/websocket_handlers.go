@@ -11,7 +11,7 @@ import (
 
 	"ekhoes-server/auth"
 	"ekhoes-server/db"
-	"ekhoes-server/terminal"
+	"ekhoes-server/module/cli"
 
 	//"websocket-server/herenow"
 
@@ -188,8 +188,8 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 				}
 		*/
 
-		case "terminal":
-			_ = terminal.MessageHandler(conn, "", payload)
+		case "cli":
+			_ = cli.MessageHandler(conn, "", payload)
 
 		default:
 			if msg.Type == "ping" {

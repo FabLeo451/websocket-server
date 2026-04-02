@@ -71,13 +71,12 @@ type Comment struct {
 }
 
 func Register() {
-	fmt.Println("Initializing ", thisModule.Name)
 	thisModule = module.Module{
 		Id:       "herenow",
 		Name:     "HereNow",
 		InitFunc: Init,
 	}
-	module.Add(thisModule)
+	module.Register(thisModule)
 }
 
 func Init(r *chi.Mux) error {

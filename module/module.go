@@ -1,7 +1,6 @@
 package module
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -63,7 +62,6 @@ func GetLoadedModules() string {
 	return strings.Join(loaded, ",")
 }
 
-func Add(m Module) {
+func Register(m Module) {
 	modules[m.Id] = m
-	fmt.Println(modules)
 }

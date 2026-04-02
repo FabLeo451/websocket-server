@@ -13,7 +13,7 @@ import (
 	"ekhoes-server/db"
 	"ekhoes-server/module"
 	"ekhoes-server/system"
-	"ekhoes-server/terminal"
+
 	"ekhoes-server/websocket"
 
 	"github.com/go-chi/chi/v5"
@@ -91,7 +91,7 @@ func Start() int {
 
 	r.Get("/metrics", GetMetrics)
 
-	r.Get("/terminal", terminal.OpenTerminal)
+	//r.Get("/terminal", terminal.OpenTerminal)
 
 	// Init modules
 	module.InitModules(r)
