@@ -48,9 +48,9 @@ func InitModules(r *chi.Mux) {
 			continue
 		}
 
-		if m.InitFunc != nil {
-			log.Printf("Initializing module %s...", m.Name)
+		log.Printf("Initializing module %s...", m.Name)
 
+		if m.InitFunc != nil {
 			if err := m.InitFunc(r); err != nil {
 				panic(err)
 			}
