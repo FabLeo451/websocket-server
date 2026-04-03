@@ -9,9 +9,11 @@ import (
 )
 
 type Module struct {
-	Id       string
-	Name     string
-	InitFunc func(*chi.Mux) error
+	Id          string
+	Name        string
+	InitFunc    func(*chi.Mux) error
+	Install     func() error
+	PostInstall func(...interface{}) error
 }
 
 // var modules map[string]Module
@@ -66,4 +68,8 @@ func GetLoadedModules() string {
 
 func Register(m Module) {
 	modules[m.Id] = m
+}
+
+func GetModule(id string) Module {
+	return modules[id]
 }

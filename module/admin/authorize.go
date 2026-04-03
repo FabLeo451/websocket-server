@@ -3,9 +3,6 @@ package admin
 import (
 	"database/sql"
 	"errors"
-	"log"
-	"os"
-	"strings"
 
 	"ekhoes-server/db"
 )
@@ -37,13 +34,13 @@ func Authorize(email string, password string) (*AuthResult, error) {
 
 	if conn != nil {
 
-		query, err := db.LoadSQL("authorize.sql")
+		query, err := db.LoadSQL(SqlFS, "authorize.sql")
 
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
-		query = strings.ReplaceAll(query, "{{DB_SCHEMA}}", os.Getenv("DB_SCHEMA"))
+		//query = strings.ReplaceAll(query, "{{DB_SCHEMA}}", os.Getenv("DB_SCHEMA"))
 
 		rows, err := conn.Query(query, password, email)
 

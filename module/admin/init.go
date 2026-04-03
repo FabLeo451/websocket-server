@@ -1,7 +1,9 @@
 package admin
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
 
 	"github.com/go-chi/chi/v5"
 
@@ -9,13 +11,28 @@ import (
 	"ekhoes-server/websocket"
 )
 
+//go:embed sql
+var all embed.FS
+
+var SqlFS fs.FS
+
+func init() {
+	sub, err := fs.Sub(all, "sql")
+	if err != nil {
+		panic(err)
+	}
+	SqlFS = sub
+}
+
 var thisModule module.Module
 
 func Register() {
 	thisModule = module.Module{
-		Id:       "admin",
-		Name:     "Admin",
-		InitFunc: Init,
+		Id:          "admin",
+		Name:        "Admin",
+		InitFunc:    Init,
+		Install:     Install,
+		PostInstall: CreateAdmin,
 	}
 	module.Register(thisModule)
 }

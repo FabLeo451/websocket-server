@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"time"
@@ -99,7 +98,7 @@ func ConnectAndKeepAlive() (*sql.DB, error) {
 
 		_connection = conn
 
-		log.Printf("Starting keep alive function...\n")
+		//log.Printf("Starting keep alive function...\n")
 		StartKeepAlive()
 
 	} else {

@@ -19,7 +19,7 @@ import (
 //go:embed sql
 var all embed.FS
 
-var SqlFS fs.FS
+var DbSqlFS fs.FS
 
 var _connection *sql.DB
 
@@ -29,40 +29,33 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	SqlFS = sub
+	DbSqlFS = sub
 }
 
+/*
 // Exported custom init
-func Init(module string) error {
-	log.Printf("Initializing database (%s)...", config.Runtime.Database)
 
-	script, err := LoadSQL("init.sql")
+	func Init(module string) error {
+		log.Printf("Initializing database (%s)...", config.Runtime.Database)
 
-	if err != nil {
-		log.Fatal(err)
-	}
+		script, err := LoadSQL("init.sql")
 
-	//fmt.Println(script)
-
-	_, err = DB_GetConnection().Exec(script)
-
-	if err != nil {
-		return err
-	}
-	/*
-		if flagCreateAdmin {
-			log.Print("Creating Administrator user...")
-
-			if err := CreateAdmin("admin"); err != nil {
-				return err
-			}
+		if err != nil {
+			log.Fatal(err)
 		}
-	*/
 
-	return nil
-}
+		//fmt.Println(script)
 
-func LoadSQL(filename string) (string, error) {
+		_, err = DB_GetConnection().Exec(script)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+*/
+func LoadSQL(SqlFS fs.FS, filename string) (string, error) {
 	folder := "postgres"
 	if config.Local() {
 		folder = "local"
@@ -81,8 +74,8 @@ func LoadSQL(filename string) (string, error) {
 	return script, nil
 }
 
-func ExecuteSQL(filename string, args ...any) error {
-	script, err := LoadSQL(filename)
+func ExecuteSQL(SqlFS fs.FS, filename string, args ...any) error {
+	script, err := LoadSQL(SqlFS, filename)
 	if err != nil {
 		return err
 	}
@@ -101,6 +94,10 @@ func Close(db *sql.DB) {
 	}
 }
 
+func CloseDatabase() {
+	Close(_connection)
+}
+
 func DB_GetConnection() *sql.DB {
 	return _connection
 }
@@ -113,18 +110,14 @@ func DB_Ping() bool {
 	return err == nil
 }
 
-func OpenStaff(app string) error {
+func OpenDatabase() error {
 	if config.Local() {
 		config.Runtime.Database = "Local"
 		config.Runtime.Local = true
 
-		if app == "" {
-			app = "ekhoes"
-		}
+		log.Printf("Opening local database... ")
 
-		log.Printf("Opening local database '%s'... ", app)
-
-		conn, err := openLocal(app)
+		conn, err := openLocal("ekhoes")
 		_connection = conn
 
 		if err != nil {
@@ -143,7 +136,17 @@ func OpenStaff(app string) error {
 		}
 	}
 
-	err := OpenCache()
+	return nil
+}
+
+func OpenStaff(app string) error {
+	err := OpenDatabase()
+
+	if err != nil {
+		return err
+	}
+
+	err = OpenCache()
 
 	if err != nil {
 		return err
@@ -165,17 +168,19 @@ func CloseStuff() {
 	}
 }
 
-func OpenAndInit(app string) error {
-	err := OpenStaff(app)
+/*
+	func OpenAndInit(app string) error {
+		err := OpenStaff(app)
 
-	if err != nil {
+		if err != nil {
+			return err
+		}
+
+		err = Init(app)
+
 		return err
 	}
-
-	err = Init(app)
-
-	return err
-}
+*/
 
 func CheckDatabaseExists() (bool, error) {
 	exists := false
@@ -200,7 +205,7 @@ func CreateDatabase() error {
 
 		// TODO: This script should be executed by superuser
 
-		script, err := LoadSQL("create_db.sql")
+		script, err := LoadSQL(DbSqlFS, "create_db.sql")
 		if err != nil {
 			return err
 		}
@@ -223,6 +228,7 @@ func CreateDatabase() error {
 	return nil
 }
 
+/*
 func CreateUser(id string, name string, email string, password string, status string, role string) error {
 	err := ExecuteSQL("create_user.sql", id, name, email, password, status)
 
@@ -236,3 +242,4 @@ func CreateUser(id string, name string, email string, password string, status st
 func CreateAdmin(email string) error {
 	return CreateUser("1000", "Administrator", email, "admin", "enabled", "ADMIN")
 }
+*/
