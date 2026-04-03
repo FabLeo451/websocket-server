@@ -49,7 +49,7 @@ func Init(r *chi.Mux) error {
 			r.Delete("/session/{id}", DeleteSessionHandler)
 			r.Delete("/sessions", DeleteAllSessionsHandler)
 
-			r.Get("/connections", websocket.GetConnectionsHandler)
+			r.Get("/ws", websocket.GetConnectionsHandler)
 
 			r.Get("/system", GetSystemInfo)
 			r.Get("/top", TopCpuProcesses)
