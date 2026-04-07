@@ -38,7 +38,9 @@ func Init(r *chi.Mux) error {
 
 	//utils.Log(thisModule, "Initializing...")
 
-	r.Route("/hn", func(r chi.Router) {
+	r.Route("/hnw", func(r chi.Router) {
+		r.Post("/login", Login)
+
 		r.Route("/hotspot", func(r chi.Router) {
 			// GET /hotspot
 			r.Get("/", GetHotspot)
