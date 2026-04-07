@@ -470,7 +470,7 @@ func getComments(hotspotId string, limit int, offset int32) ([]Comment, error) {
 				c.created,
 				c.updated
 			FROM hn.comments c
-			JOIN ekhoes.users u ON c.user_id = u.id
+			JOIN hn.users u ON c.user_id = u.id
 			WHERE c.hotspot_id = $1
 			%s
 			ORDER BY c.id DESC
