@@ -182,7 +182,7 @@ func GetHotspot(w http.ResponseWriter, r *http.Request) {
 			(h.owner = $1) AS owned_by_me
 
 			FROM hn.HOTSPOTS h
-			JOIN ekhoes.users u ON h.owner = u.id
+			JOIN hn.users u ON h.owner = u.id
 
 			-- Join to count likes
 			LEFT JOIN (
