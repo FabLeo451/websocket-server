@@ -25,7 +25,7 @@ func Authenticate(email string, password string) (*AuthResult, error) {
 
 	if conn != nil {
 
-		query, err := db.LoadSQL(SqlFS, "authorize.sql")
+		query, err := db.LoadSQL(SqlFS, "authenticate.sql")
 
 		if err != nil {
 			return nil, err
