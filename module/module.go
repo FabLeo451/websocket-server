@@ -1,6 +1,7 @@
 package module
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -38,6 +39,8 @@ func InitModules(r *chi.Mux) {
 		return
 	}
 
+	log.Printf("Initializing modules...")
+
 	ids := strings.Split(modulesEnv, ",")
 
 	for _, id := range ids {
@@ -50,15 +53,20 @@ func InitModules(r *chi.Mux) {
 			continue
 		}
 
-		log.Printf("Initializing module %s...", m.Name)
+		fmt.Printf("\t%-10s... ", m.Name)
+		success := true
 
 		if m.InitFunc != nil {
 			if err := m.InitFunc(r); err != nil {
-				panic(err)
+				fmt.Println(err.Error())
+				success = false
 			}
 		}
 
-		loaded = append(loaded, m.Name)
+		if success {
+			fmt.Println("OK")
+			loaded = append(loaded, m.Name)
+		}
 	}
 }
 

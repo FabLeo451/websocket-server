@@ -50,13 +50,13 @@ func DynamicCORSMiddleware(next http.Handler) http.Handler {
  */
 func Start() int {
 
-	log.Printf("Starting %s %s\n\tpid=%d\n\tlocal=%v\n\tpostgres=%v\n\tredis=%v\n",
+	log.Printf("Starting %s %s\n\t%-10s%d\n\t%-10s%v\n\t%-10s%v\n\t%-10s%v\n",
 		config.Name(),
 		config.Version(),
-		os.Getpid(),
-		config.Local(),
-		config.PosgresEnabled(),
-		config.RedisEnabled())
+		"PID", os.Getpid(),
+		"Local", config.Local(),
+		"Postgres", config.PosgresEnabled(),
+		"Redis", config.RedisEnabled())
 
 	err := db.OpenStaff("")
 
