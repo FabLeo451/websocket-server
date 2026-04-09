@@ -94,14 +94,14 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("%s connected\n", sess.User.Name)
+	log.Printf("%s connected\n", sess.User.Email)
 
 	AddConnection(conn, sessionId, sess.User.Email)
 
 	defer func() {
 		RemoveConnection(sessionId)
 		conn.Close()
-		log.Printf("%s disconnected\n", sess.User.Name)
+		log.Printf("%s disconnected\n", sess.User.Email)
 		auth.SetSessionActive(sessionId, false)
 	}()
 
@@ -115,6 +115,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error reading message:", err)
 			break
 		}
+		//fmt.Println(string(p))
 
 		// Unmarshal message
 
