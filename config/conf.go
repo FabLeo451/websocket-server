@@ -46,16 +46,6 @@ type Configuration struct {
 
 var Conf Configuration
 
-type RuntimeStruct struct {
-	StartTime    time.Time
-	InstanceName string
-	Database     string
-	Local        bool
-	Cache        string
-}
-
-var Runtime RuntimeStruct
-
 func Init() {
 
 	// Load .env (as environment variables)
@@ -121,10 +111,6 @@ func Version() string {
 
 func BuildTime() string {
 	return buildTime
-}
-
-func Local() bool {
-	return Runtime.Local
 }
 
 func PosgresEnabled() bool {
