@@ -125,14 +125,14 @@ func OpenDatabase() error {
 		}
 	} else {
 		if config.PosgresEnabled() {
-			config.Runtime.Database = "PostgreSQL"
-
 			log.Printf("Connecting to database %s:%s...\n", os.Getenv("DB_HOST"), os.Getenv("DB_PORT"))
 
 			_, err := ConnectAndKeepAlive()
 			if err != nil {
 				return err
 			}
+
+			DB_GetConnection().QueryRow("SELECT version()").Scan(&config.Runtime.Database)
 		}
 	}
 
