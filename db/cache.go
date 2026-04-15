@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/TwiN/gocache/v2"
 	"github.com/redis/go-redis/v9"
@@ -19,7 +20,6 @@ var (
 
 func OpenCache() error {
 	if config.RedisEnabled() {
-		config.Runtime.Cache = "Redis"
 
 		log.Printf("Connecting to Redis %s:%s...\n", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT"))
 
@@ -27,6 +27,33 @@ func OpenCache() error {
 		if err != nil {
 			return err
 		}
+
+		info, err := RedisGetConnection().Info(ctx).Result()
+
+		if err != nil {
+			log.Println(err)
+			config.Runtime.Cache = "Redis - " + err.Error()
+		} else {
+			//fmt.Println(info)
+			lines := strings.Split(info, "\n")
+
+			version, os := "", ""
+
+			for _, line := range lines {
+				if strings.HasPrefix(line, "redis_version:") {
+					version = strings.TrimPrefix(line, "redis_version:")
+				} else if strings.HasPrefix(line, "os:") {
+					os = strings.TrimPrefix(line, "os:")
+				}
+
+				if version != "" && os != "" {
+					break
+				}
+			}
+
+			config.Runtime.Cache = "Redis " + version + " " + os
+		}
+
 	} else {
 		config.Runtime.Cache = "Internal"
 
