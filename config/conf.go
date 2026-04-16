@@ -10,7 +10,7 @@ import (
 )
 
 var name string = "Ekhoes API server"
-var version string = "1.0.0"
+var version string = "1.0.0-alpha"
 var buildTime string
 
 func Init() {
