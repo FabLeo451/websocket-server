@@ -1,7 +1,7 @@
 package herenow
 
 import (
-	"ekhoes-server/websocket"
+	"ekhoes-server/common"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +13,7 @@ type Payload struct {
 	Boundaries Boundaries `json:"boundaries"`
 }
 
-func WsHandler(in websocket.Message, out websocket.Message) error {
+func WsHandler(in common.Message, out common.Message) error {
 
 	//log.Printf("Received message of type '%s/%s': %s\n", message.Type, message.Subtype, message.Text)
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"ekhoes-server/common"
 	"ekhoes-server/module"
 )
 
@@ -22,10 +23,10 @@ func init() {
 	SqlFS = sub
 }
 
-var thisModule module.Module
+var thisModule common.Module
 
 func Register() {
-	thisModule = module.Module{
+	thisModule = common.Module{
 		Id:        "herenow",
 		Name:      "HereNow",
 		InitFunc:  Init,

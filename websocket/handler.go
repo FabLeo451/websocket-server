@@ -8,17 +8,13 @@ import (
 	"log"
 
 	"ekhoes-server/auth"
+	"ekhoes-server/common"
+	"ekhoes-server/module"
 
 	//"websocket-server/herenow"
 
 	"github.com/gorilla/websocket"
 )
-
-type Message struct {
-	AppId   string          `json:"appId"`
-	Type    string          `json:"type"`
-	Payload json.RawMessage `json:"payload"`
-}
 
 // Struttura per il WebSocket
 var upgrader = websocket.Upgrader{
@@ -122,7 +118,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 		// Unmarshal message
 
-		var msg Message
+		var msg common.Message
 
 		err = json.Unmarshal(p, &msg)
 
@@ -131,50 +127,28 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		/*
-			bytes, err := base64.StdEncoding.DecodeString(msg.Payload)
-			if err != nil {
-				log.Println("Unable to decode payload from bas64:", err)
-				continue
-			}
-
-			payload := string(bytes)
-		*/
-
 		// Process message
 
-		var reply Message
+		var reply common.Message
 
-		switch msg.AppId {
-		/*
-			case "here-now":
-				resultPayloadStr, err := herenow.MessageHandler(user["id"].(string), msg.Type, msg.Subtype, payload)
+		m, ok := module.GetModule(msg.AppId)
 
-				if err != nil {
-					log.Println(err)
-				} else {
-					var reply Message
+		if ok {
+			// Module handler
 
-					encoded := base64.StdEncoding.EncodeToString([]byte(resultPayloadStr))
-					reply = Message{AppId: msg.AppId, Type: msg.Type, Subtype: msg.Subtype, Payload: encoded}
+			err := m.WsHandler(msg, reply)
 
-					jsonStr, _ := json.Marshal(reply)
+			if err != nil {
+				log.Printf("[%s] Error processing websocket message: %s", m.Name, err)
+			}
+		} else {
+			// Fallback
 
-					if err := conn.WriteMessage(websocket.TextMessage, []byte(jsonStr)); err != nil {
-						log.Println("Error writing message:", err)
-					}
-				}
-		*/
-
-		//case "cli":
-		//	_ = cli.MessageHandler(conn, "", payload)
-
-		default:
 			if msg.Type == "ping" {
 				now := time.Now().UTC()
 				isoString := now.Format(time.RFC3339)
 				payload, _ := json.Marshal(isoString)
-				reply = Message{Type: "pong", Payload: payload}
+				reply = common.Message{Type: "pong", Payload: payload}
 
 				jsonStr, _ := json.Marshal(reply)
 
@@ -186,6 +160,18 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 				log.Printf("Unhandled message from app '%s' %v\n", msg.AppId, msg)
 				//reply = Message{Type: "default", Text: "Hello from websocket server"}
 			}
+		}
+
+		replyBytes, err := json.Marshal(reply)
+
+		if err != nil {
+			log.Println("Error unmarshalling message:", err)
+			continue
+		}
+
+		if err := conn.WriteMessage(websocket.TextMessage, replyBytes); err != nil {
+			log.Println("Error writing message:", err)
+			break
 		}
 	}
 

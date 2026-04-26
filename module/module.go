@@ -1,7 +1,7 @@
 package module
 
 import (
-	"ekhoes-server/websocket"
+	"ekhoes-server/common"
 	"fmt"
 	"log"
 	"os"
@@ -10,17 +10,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type Module struct {
-	Id          string
-	Name        string
-	InitFunc    func(*chi.Mux) error
-	Install     func() error
-	PostInstall func(...interface{}) error
-	WsHandler   func(websocket.Message, websocket.Message) error
-}
-
 // var modules map[string]Module
-var modules = make(map[string]Module)
+var modules = make(map[string]common.Module)
 var loaded []string
 
 /*
@@ -76,10 +67,11 @@ func GetLoadedModules() string {
 	return strings.Join(loaded, ",")
 }
 
-func Register(m Module) {
+func Register(m common.Module) {
 	modules[m.Id] = m
 }
 
-func GetModule(id string) Module {
-	return modules[id]
+func GetModule(id string) (common.Module, bool) {
+	module, ok := modules[id]
+	return module, ok
 }

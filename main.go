@@ -101,26 +101,30 @@ func Install(id string) error {
 		}
 	}
 
-	m := module.GetModule(id)
+	m, ok := module.GetModule(id)
 
-	if m.Install != nil {
-		err := m.Install()
+	if ok {
+		if m.Install != nil {
+			err := m.Install()
 
-		if err != nil {
-			log.Fatal(err)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			return errors.New("no installation method delcared for module")
 		}
+
+		if flagAdminEmail != "" {
+			if err := m.PostInstall(flagAdminEmail); err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		}
+
+		log.Println("Initialization successful")
 	} else {
-		return errors.New("no installation method delcared for module")
+		return errors.New("Module not found")
 	}
-
-	if flagAdminEmail != "" {
-		if err := m.PostInstall(flagAdminEmail); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	}
-
-	log.Println("Initialization successful")
 
 	return nil
 }

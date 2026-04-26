@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"ekhoes-server/common"
 	"ekhoes-server/module"
 	"html/template"
 	"log"
@@ -20,10 +21,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var thisModule module.Module
+var thisModule common.Module
 
 func Register() {
-	thisModule = module.Module{
+	thisModule = common.Module{
 		Id:       "cli",
 		Name:     "CLI",
 		InitFunc: nil,
