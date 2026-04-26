@@ -2,6 +2,7 @@ package herenow
 
 import (
 	"embed"
+	"fmt"
 	"io/fs"
 
 	"github.com/go-chi/chi/v5"
@@ -40,7 +41,9 @@ func Init(r *chi.Mux) error {
 
 	//utils.Log(thisModule, "Initializing...")
 
-	r.Route("/hnw", func(r chi.Router) {
+	root := fmt.Sprintf("/%s", thisModule.Id)
+
+	r.Route(root, func(r chi.Router) {
 		r.Post("/login", Login)
 
 		r.Route("/hotspot", func(r chi.Router) {
