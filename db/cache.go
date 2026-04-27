@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/TwiN/gocache/v2"
 	"github.com/redis/go-redis/v9"
@@ -66,16 +67,35 @@ func OpenCache() error {
 	return nil
 }
 
-func Set(key string, value interface{}) error {
+func SetWithTTL(key string, value interface{}, ttl time.Duration) error {
 	var err error
 
 	if config.RedisEnabled() {
-		err = RedisGetConnection().Set(ctx, key, value, 0).Err()
+		err = RedisGetConnection().Set(ctx, key, value, ttl).Err()
 	} else {
-		cache.Set(key, value)
+		if ttl == 0 {
+			cache.Set(key, value)
+		} else {
+			cache.SetWithTTL(key, value, ttl)
+		}
 	}
 
 	return err
+}
+
+func Set(key string, value interface{}) error {
+	/*
+		var err error
+
+		if config.RedisEnabled() {
+			err = RedisGetConnection().Set(ctx, key, value, 0).Err()
+		} else {
+			cache.Set(key, value)
+		}
+
+		return err
+	*/
+	return SetWithTTL(key, value, 0)
 }
 
 func Update(key string, value interface{}) error {
