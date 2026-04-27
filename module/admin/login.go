@@ -53,7 +53,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			DeviceType: credentials.DeviceType,
 			Ip:         r.RemoteAddr,
 		}
-		sessionId, err = auth.CreateSession(thisModule.Id, session)
+		sessionId, err = auth.CreateSession(thisModule.Id, session, 0)
 
 		if err != nil {
 			log.Println(err)

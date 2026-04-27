@@ -53,7 +53,7 @@ type Session struct {
 	}
 */
 
-func CreateSession(appId string, session Session) (string, error) {
+func CreateSession(appId string, session Session, ttl time.Duration) (string, error) {
 	session.Created = time.Now().UTC()
 	session.Updated = time.Now().UTC()
 
@@ -68,7 +68,7 @@ func CreateSession(appId string, session Session) (string, error) {
 
 	sessionId := fmt.Sprintf("ses:%s:%s", appId, uuid.New().String())
 
-	err = db.Set(sessionId, data)
+	err = db.SetWithTTL(sessionId, data, ttl)
 
 	if err != nil {
 		log.Fatalf("Error creating session: %v", err)
