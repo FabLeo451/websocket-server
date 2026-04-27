@@ -24,6 +24,17 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+func closeOnError(conn *websocket.Conn, code int, message string) {
+	_ = conn.WriteMessage(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(
+			code,
+			message,
+		),
+	)
+	conn.Close()
+}
+
 func HandleConnection(w http.ResponseWriter, r *http.Request) {
 	/*
 		dump, err := httputil.DumpRequest(r, true) // true = include il body
@@ -36,6 +47,12 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(string(dump))
 		fmt.Println("===== END REQUEST =====")
 	*/
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Error upgrading WebSocket:", err)
+		return
+	}
 
 	token := ""
 	sessionId := ""
@@ -57,7 +74,8 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 		sessionId, err = auth.VerifyJWT(token)
 
 		if err != nil {
-			log.Println("Can't decode token:", err)
+			log.Println(err)
+			closeOnError(conn, websocket.ClosePolicyViolation /* 1008 */, err.Error())
 			return
 		}
 
@@ -65,33 +83,11 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 		if !found {
 			log.Printf("Session not found in websocket connection handler: %s\n", sessionId)
+			closeOnError(conn, websocket.ClosePolicyViolation /* 1008 */, "Session not found")
 			return
 		}
 
 		userEmail = sess.User.Email
-
-		/*
-			sess, found := auth.SetSessionActive(sessionId, true)
-
-			if !found {
-				log.Printf("Session not found in websocket connection handler: %s\n", sessionId)
-				_ = conn.WriteMessage(
-					websocket.CloseMessage,
-					websocket.FormatCloseMessage(
-						websocket.ClosePolicyViolation, // 1008
-						"Session not found",
-					),
-				)
-				//conn.Close()
-				return
-			}
-		*/
-	}
-
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("Error upgrading WebSocket:", err)
-		return
 	}
 
 	log.Printf("%s %s connected\n", userName, userEmail)
