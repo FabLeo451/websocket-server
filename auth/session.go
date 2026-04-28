@@ -33,6 +33,8 @@ type Session struct {
 	Updated    time.Time `json:"updated"`
 }
 
+var SessionNotFound = errors.New("session not found")
+
 /*
 	func Create(appId string, session Session) (string, error) {
 		data, err := json.Marshal(session)
@@ -167,6 +169,11 @@ func GetSession(id string) (Session, error) {
 	val, err := db.Get(id)
 
 	var sess Session
+
+	if err == db.KeyNotFound {
+		return sess, SessionNotFound
+	}
+
 	err = json.Unmarshal([]byte(val), &sess)
 
 	return sess, err
