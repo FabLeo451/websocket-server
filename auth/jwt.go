@@ -2,6 +2,7 @@ package auth
 
 import (
 	"ekhoes-server/config"
+	"errors"
 	"fmt"
 	"time"
 
@@ -48,7 +49,9 @@ func GenerateJWT(sessionId, userId, email, name string, roles string, privileges
 	return tokenString, nil
 }
 
-func DecodeJWT(tokenString string) (jwt.MapClaims, error) {
+func DecodeJWT(tokenString string) (jwt.MapClaims, bool, error) {
+
+	valid := true
 
 	var jwtSecret = []byte(config.JWTSecret())
 
@@ -59,21 +62,25 @@ func DecodeJWT(tokenString string) (jwt.MapClaims, error) {
 		return jwtSecret, nil
 	})
 
-	if err != nil || !token.Valid {
-		return nil, fmt.Errorf("invalid token: %w", err)
+	if err != nil {
+		if !errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, false, fmt.Errorf("invalid token: %w", err)
+		}
 	}
+
+	valid = token.Valid
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, fmt.Errorf("invalid claims")
+		return nil, valid, fmt.Errorf("invalid claims")
 	}
 
-	return claims, nil
+	return claims, valid, nil
 }
 
 func VerifyJWT(tokenString string) (string, error) {
 
-	claims, err := DecodeJWT(tokenString)
+	claims, valid, err := DecodeJWT(tokenString)
 
 	if err != nil {
 		return "", err
@@ -85,9 +92,11 @@ func VerifyJWT(tokenString string) (string, error) {
 	}
 
 	// Check expiration
-	if expRaw, ok := claims["exp"].(float64); ok {
-		if time.Now().Unix() > int64(expRaw) {
-			return "", fmt.Errorf("token expired")
+	if !valid {
+		if expRaw, ok := claims["exp"].(float64); ok {
+			if time.Now().Unix() > int64(expRaw) {
+				return "", fmt.Errorf("token expired")
+			}
 		}
 	}
 

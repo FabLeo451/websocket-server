@@ -29,9 +29,9 @@ func CheckAuthorization(r *http.Request) (jwt.MapClaims, error) {
 		return nil, errors.New("missing Authorization header")
 	}
 
-	claims, err := DecodeJWT(token)
+	claims, valid, err := DecodeJWT(token)
 
-	if err != nil {
+	if err != nil || !valid {
 		return nil, errors.New("invalid token")
 	}
 

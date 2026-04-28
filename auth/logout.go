@@ -29,7 +29,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//sessionId, err := verifyJWT(payload.Token)
-	claims, err := DecodeJWT(payload.Token)
+	claims, _, err := DecodeJWT(payload.Token)
 
 	if err != nil {
 		log.Println(err)

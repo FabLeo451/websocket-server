@@ -162,3 +162,12 @@ func GetSessions() ([]Session, error) {
 
 	return sessions, nil
 }
+
+func GetSession(id string) (Session, error) {
+	val, err := db.Get(id)
+
+	var sess Session
+	err = json.Unmarshal([]byte(val), &sess)
+
+	return sess, err
+}

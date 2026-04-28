@@ -29,7 +29,28 @@ func addCorsHeaders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 }
 
-func CreateGuestSession(w http.ResponseWriter, r *http.Request) {
+func Welcome(w http.ResponseWriter, r *http.Request) {
+	/*
+		dump, err := httputil.DumpRequest(r, true) // true = include il body
+		if err != nil {
+			fmt.Println("Errore DumpRequest:", err)
+			return
+		}
+
+		fmt.Println("===== HTTP REQUEST DUMP =====")
+		fmt.Println(string(dump))
+		fmt.Println("===== END REQUEST =====")
+	*/
+
+	sessionId := ""
+	token := ""
+
+	user := auth.User{
+		Name: "Guest",
+	}
+
+	// Get client info
+
 	var credentials auth.Credentials
 
 	err := json.NewDecoder(r.Body).Decode(&credentials)
@@ -39,41 +60,80 @@ func CreateGuestSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := auth.User{
-		Name: "Guest",
+	// Check token
+
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+		token = authHeader[7:]
 	}
 
-	ttl := 1 * time.Minute
+	if token == "" {
+		// Create guest session
 
-	// Create session
+		ttl := 5 * time.Minute
 
-	session := auth.Session{
-		User:       user,
-		Agent:      credentials.Agent,
-		Platform:   credentials.Platform,
-		Model:      credentials.Model,
-		DeviceName: credentials.DeviceName,
-		DeviceType: credentials.DeviceType,
-		Ip:         r.RemoteAddr,
-	}
-	sessionId, err := auth.CreateSession(thisModule.Id, session, ttl)
+		session := auth.Session{
+			User:       user,
+			Agent:      credentials.Agent,
+			Platform:   credentials.Platform,
+			Model:      credentials.Model,
+			DeviceName: credentials.DeviceName,
+			DeviceType: credentials.DeviceType,
+			Ip:         r.RemoteAddr,
+		}
+		sessionId, err = auth.CreateSession(thisModule.Id, session, ttl)
 
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Error creating session", http.StatusInternalServerError)
-		return
-	}
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Error creating session", http.StatusInternalServerError)
+			return
+		}
 
-	// Create token
+		// Create token
 
-	expiresAt := time.Now().Add(ttl)
+		token, err = auth.GenerateJWT(sessionId, user.Id, credentials.Email, user.Name, "", "", time.Now().Add(time.Minute))
 
-	token, err := auth.GenerateJWT(sessionId, user.Id, credentials.Email, user.Name, "", "", expiresAt)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "Error generating token", http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Decode token
 
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Error generating token", http.StatusInternalServerError)
-		return
+		claims, valid, err := auth.DecodeJWT(token)
+
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		// Get session id
+
+		sessionId, _ = claims["sessionId"].(string)
+
+		// Retrieve session
+
+		sess, err := auth.GetSession(sessionId)
+
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		if !valid {
+			// Regenerate token
+
+			token, err = auth.GenerateJWT(sessionId, sess.User.Id, credentials.Email, sess.User.Name, "", "", time.Now().Add(time.Minute))
+
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Error regenerating token", http.StatusInternalServerError)
+				return
+			}
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
