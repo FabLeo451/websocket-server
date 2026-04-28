@@ -2,12 +2,11 @@ package auth
 
 import (
 	"ekhoes-server/db"
+	"ekhoes-server/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
-
-	"github.com/google/uuid"
 
 	"log"
 )
@@ -66,7 +65,7 @@ func CreateSession(appId string, session Session, ttl time.Duration) (string, er
 		return "", err
 	}
 
-	sessionId := fmt.Sprintf("ses:%s:%s", appId, uuid.New().String())
+	sessionId := fmt.Sprintf("ses:%s:%s", appId, utils.ULID())
 
 	err = db.SetWithTTL(sessionId, data, ttl)
 
