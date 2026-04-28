@@ -29,7 +29,39 @@ func addCorsHeaders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 }
 
-func Welcome(w http.ResponseWriter, r *http.Request) {
+func welcomeGuest(credentials auth.Credentials, remoteAddr string) (string, error) {
+	user := auth.User{
+		Name: "Guest",
+	}
+	ttl := 5 * time.Minute
+
+	session := auth.Session{
+		User:       user,
+		Agent:      credentials.Agent,
+		Platform:   credentials.Platform,
+		Model:      credentials.Model,
+		DeviceName: credentials.DeviceName,
+		DeviceType: credentials.DeviceType,
+		Ip:         remoteAddr,
+	}
+	sessionId, err := auth.CreateSession(thisModule.Id, session, ttl)
+
+	if err != nil {
+		return "", err
+	}
+
+	// Create token
+
+	token, err := auth.GenerateJWT(sessionId, user.Id, credentials.Email, user.Name, "", "", time.Now().Add(time.Minute))
+
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+
+func WelcomeHandler(w http.ResponseWriter, r *http.Request) {
 	/*
 		dump, err := httputil.DumpRequest(r, true) // true = include il body
 		if err != nil {
@@ -69,33 +101,11 @@ func Welcome(w http.ResponseWriter, r *http.Request) {
 
 	if token == "" {
 		// Create guest session
-
-		ttl := 5 * time.Minute
-
-		session := auth.Session{
-			User:       user,
-			Agent:      credentials.Agent,
-			Platform:   credentials.Platform,
-			Model:      credentials.Model,
-			DeviceName: credentials.DeviceName,
-			DeviceType: credentials.DeviceType,
-			Ip:         r.RemoteAddr,
-		}
-		sessionId, err = auth.CreateSession(thisModule.Id, session, ttl)
+		token, err = welcomeGuest(credentials, r.RemoteAddr)
 
 		if err != nil {
 			log.Println(err)
-			http.Error(w, "Error creating session", http.StatusInternalServerError)
-			return
-		}
-
-		// Create token
-
-		token, err = auth.GenerateJWT(sessionId, user.Id, credentials.Email, user.Name, "", "", time.Now().Add(time.Minute))
-
-		if err != nil {
-			log.Println(err)
-			http.Error(w, "Error generating token", http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 	} else {
