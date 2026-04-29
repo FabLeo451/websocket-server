@@ -18,86 +18,88 @@ type WebsocketConnection struct {
 }
 
 var (
-	connections []WebsocketConnection
-	mu          sync.Mutex
+	connections = make(map[string]map[string]*WebsocketConnection)
+	mu          sync.RWMutex
 )
 
-func GetConnections() []WebsocketConnection {
-	mu.Lock()
-	defer mu.Unlock()
+// 🔍 Tutte le connessioni (flatten)
+func GetConnections() []*WebsocketConnection {
+	mu.RLock()
+	defer mu.RUnlock()
 
-	// copy to avoid extern updates
-	result := make([]WebsocketConnection, len(connections))
-	copy(result, connections)
-	//fmt.Println(result)
+	var result []*WebsocketConnection
+
+	for _, sessionMap := range connections {
+		for _, conn := range sessionMap {
+			result = append(result, conn)
+		}
+	}
+
 	return result
 }
 
+// 🔢 Count totale
 func GetConnectionsCount() int32 {
-	mu.Lock()
-	defer mu.Unlock()
-	return int32(len(connections))
+	mu.RLock()
+	defer mu.RUnlock()
+
+	var count int32
+
+	for _, sessionMap := range connections {
+		count += int32(len(sessionMap))
+	}
+
+	return count
 }
 
-func AddConnection(wsConn WebsocketConnection) {
+// ➕ Aggiunta connessione
+func AddConnection(wsConn *WebsocketConnection) {
 	mu.Lock()
 	defer mu.Unlock()
 
 	wsConn.ConnectionId = utils.ULID()
 	wsConn.Created = time.Now().UTC()
 
-	connections = append(connections, wsConn)
+	if _, ok := connections[wsConn.SessionId]; !ok {
+		connections[wsConn.SessionId] = make(map[string]*WebsocketConnection)
+	}
 
-	//fmt.Println(connections)
+	connections[wsConn.SessionId][wsConn.ConnectionId] = wsConn
 }
 
-func RemoveConnection(sessionId string) {
+// ➖ Rimozione connessione
+func RemoveConnection(sessionId, connectionId string) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	for i, c := range connections {
-		if c.SessionId == sessionId {
-			connections = append(connections[:i], connections[i+1:]...)
-			return
+	if sessionMap, ok := connections[sessionId]; ok {
+		delete(sessionMap, connectionId)
+
+		if len(sessionMap) == 0 {
+			delete(connections, sessionId)
 		}
 	}
 }
 
-/*
-	func UpdateConnection(sessionId string, activity string) {
-		mu.Lock()
-		defer mu.Unlock()
+// 🔍 Singola connessione (vera reference)
+func GetWebsocketConnection(sessionId, connectionId string) *WebsocketConnection {
+	mu.RLock()
+	defer mu.RUnlock()
 
-		for i := range connections {
-			if connections[i].SessionId == sessionId {
-				connections[i].LastActivity = activity
-				connections[i].LastActivityTime = time.Now().UTC()
-				return
-			}
-		}
-	}
-*/
-
-func GetWebsocketConnection(sessionId string) *WebsocketConnection {
-	mu.Lock()
-	defer mu.Unlock()
-
-	for i := range connections {
-		if connections[i].SessionId == sessionId {
-			return &connections[i]
+	if sessionMap, ok := connections[sessionId]; ok {
+		if conn, ok := sessionMap[connectionId]; ok {
+			return conn
 		}
 	}
 
 	return nil
 }
 
+// ❌ Chiudi connessione
 func CloseConnection(conn *websocket.Conn, code int, reason string) {
 	_ = conn.WriteMessage(
 		websocket.CloseMessage,
-		websocket.FormatCloseMessage(
-			code,
-			reason,
-		),
+		websocket.FormatCloseMessage(code, reason),
 	)
 	conn.Close()
 }

@@ -93,10 +93,10 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("%s %s connected\n", wsConn.Name, wsConn.Email)
 
-	AddConnection(wsConn)
+	AddConnection(&wsConn)
 
 	defer func() {
-		RemoveConnection(wsConn.SessionId)
+		RemoveConnection(wsConn.SessionId, wsConn.ConnectionId)
 		conn.Close()
 		log.Printf("%s %s disconnected\n", wsConn.Name, wsConn.Email)
 		auth.SetSessionActive(wsConn.SessionId, false)
