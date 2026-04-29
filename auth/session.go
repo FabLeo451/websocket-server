@@ -17,6 +17,8 @@ type User struct {
 	Email      string `json:"email" bson:"Email"`
 	Roles      string `json:"roles" bson:"Roles"`
 	Privileges string `json:"privileges" bson:"Privileges"`
+	IsGuest    bool   `json:"isGuest" bson:"IsGuest"`
+	IsUSer     bool   `json:"isUSer" bson:"IsUSer"`
 }
 
 type Session struct {
@@ -34,25 +36,6 @@ type Session struct {
 }
 
 var SessionNotFound = errors.New("session not found")
-
-/*
-	func Create(appId string, session Session) (string, error) {
-		data, err := json.Marshal(session)
-		if err != nil {
-			return "", err
-		}
-
-		sessionID := fmt.Sprintf("ses:%s:%s", appId, uuid.New().String())
-
-		err = db.Set(sessionID, data)
-
-		if err != nil {
-			log.Fatalf("Error creating session: %v", err)
-		}
-
-		return sessionID, nil
-	}
-*/
 
 func CreateSession(appId string, session Session, ttl time.Duration) (string, error) {
 	session.Created = time.Now().UTC()

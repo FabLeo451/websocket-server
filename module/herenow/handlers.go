@@ -32,7 +32,9 @@ func addCorsHeaders(w http.ResponseWriter, r *http.Request) {
 
 func welcomeGuest(credentials auth.Credentials, remoteAddr string) (auth.Session, string, error) {
 	user := auth.User{
-		Name: "Guest",
+		Name:    "Guest",
+		IsGuest: true,
+		IsUSer:  false,
 	}
 
 	session := auth.Session{
@@ -113,6 +115,9 @@ func WelcomeHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
+
+		user.IsGuest = true
+		user.IsUSer = false
 	} else {
 		// Decode token
 
@@ -152,11 +157,21 @@ func WelcomeHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			user.Name, user.Id = sess.User.Name, sess.User.Id
+			user.IsGuest = sess.User.IsGuest
+			user.IsUSer = sess.User.IsUSer
 		}
 	}
 
+	data := fmt.Sprintf(
+		`{"token":"%s", "name":"%s", "id":"%s", "isGuest":%t, "isUser":%t }`,
+		token,
+		user.Name,
+		user.Id,
+		user.IsGuest,
+		user.IsUSer)
+
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(fmt.Sprintf(`{"token":"%s", "name":"%s", "id":"%s" }`, token, user.Name, user.Id)))
+	w.Write([]byte(data))
 	w.WriteHeader(http.StatusOK)
 }
 
