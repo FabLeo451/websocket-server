@@ -73,6 +73,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	if token == "" {
 		utils.Error("Missing token")
+		closeOnError(conn, websocket.ClosePolicyViolation /* 1008 */, "Missing token")
 		return
 	}
 

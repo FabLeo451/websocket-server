@@ -64,7 +64,7 @@ func welcomeGuest(credentials auth.Credentials, remoteAddr string) (auth.Session
 		user.Name,
 		"",
 		"",
-		time.Now().Add(time.Duration(config.TTL_Token())))
+		time.Now().Add(time.Duration(config.TTL_Token())*time.Minute))
 
 	if err != nil {
 		return session, "", err
@@ -155,7 +155,7 @@ func WelcomeHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			utils.Debug("Session found. Extending TTL...")
 
-			db.UpdateTTL(sessionId, time.Duration(config.TTL_Session()))
+			db.UpdateTTL(sessionId, time.Duration(config.TTL_Session())*time.Minute)
 
 			if !valid {
 				// Regenerate token
