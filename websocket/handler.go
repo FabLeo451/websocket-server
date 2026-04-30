@@ -114,7 +114,11 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 		_, p, err := conn.ReadMessage()
 
 		if err != nil {
-			log.Println("Error reading message:", err)
+			if websocket.IsCloseError(err, websocket.CloseGoingAway) {
+				//fmt.Println("Client ha chiuso la connessione (going away)")
+			} else {
+				utils.Error("Error reading message: %s", err)
+			}
 			break
 		}
 		//fmt.Println(string(p))
