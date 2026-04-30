@@ -185,7 +185,7 @@ func WelcomeHandler(w http.ResponseWriter, r *http.Request) {
 		user.IsGuest,
 		user.IsUSer)
 
-	utils.Debug("%w", data)
+	utils.Debug("%s", data)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(data))
