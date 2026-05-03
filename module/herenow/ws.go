@@ -31,6 +31,7 @@ func WsHandler(user auth.User, in common.Message, out *common.Message) error {
 
 		switch query.Id {
 		case "getHotspotsByBoundaries":
+			out.Type = "array"
 			var hotspots, ephemerals []Hotspot
 
 			//fmt.Printf("%+v\n", query.Boundaries)
