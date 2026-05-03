@@ -31,7 +31,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	authRes, err := Authenticate(credentials.Email, credentials.Password)
 
 	if err != nil {
-		utils.Error(err.Error())
+		utils.Err(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
