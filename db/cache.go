@@ -150,7 +150,7 @@ func GetKeysByPattern(pattern string) ([]string, error) {
 	var keys []string
 
 	if config.RedisEnabled() {
-		keys, err = RedisGetConnection().Keys(ctx, "*").Result()
+		keys, err = RedisGetConnection().Keys(ctx, pattern).Result()
 	} else {
 		keys = cache.GetKeysByPattern(pattern, 0)
 	}
