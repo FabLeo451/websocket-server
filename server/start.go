@@ -144,7 +144,7 @@ func Start() int {
 
 	log.Println("Closing websocket connections...")
 
-	websocket.DiscnnectAll()
+	websocket.DisconnectAll()
 
 	db.CloseStuff()
 

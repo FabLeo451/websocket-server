@@ -108,7 +108,7 @@ func disconnect(wsConn *WebsocketConnection) {
 	onDisconnect(wsConn)
 }
 
-func DiscnnectAll() {
+func DisconnectAll() {
 	for _, sessionMap := range connections {
 		for _, conn := range sessionMap {
 			disconnect(conn)
